@@ -2,8 +2,8 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ROOM } from '../lib/houseLayout'
 
-const wallColor = '#e8e4dc'
-const floorColor = '#c4b8a5'
+const wallColor = '#e6e2d8'
+const floorColor = '#b8ae9c'
 const trimColor = '#6b5b4d'
 
 export function ProceduralRoom() {
@@ -31,6 +31,15 @@ export function ProceduralRoom() {
         color: trimColor,
         roughness: 0.75,
         metalness: 0.05,
+      }),
+    [],
+  )
+  const ceilingMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#ebe7df',
+        roughness: 0.82,
+        metalness: 0.0,
       }),
     [],
   )
@@ -113,7 +122,7 @@ export function ProceduralRoom() {
         name="Ceiling"
         position={[0, h, 0]}
         receiveShadow
-        material={wallMat}
+        material={ceilingMat}
       >
         <boxGeometry args={[w - 0.02, ROOM.wallT, w - 0.02]} />
       </mesh>

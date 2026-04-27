@@ -5,6 +5,7 @@ import { Corridors } from './Corridors'
 import { ExhibitMesh } from './ExhibitMesh'
 import { FirstPersonRig, KeyboardTracker } from './FirstPersonRig'
 import { GltfRoom } from './GltfRoom'
+import { InteriorLights } from './InteriorLights'
 import { ProceduralRoom } from './ProceduralRoom'
 
 type Props = {
@@ -17,11 +18,21 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
   return (
     <>
       <KeyboardTracker />
-      <color attach="background" args={['#b8c4d4']} />
-      <fog attach="fog" args={['#b8c4d4', 14, 42]} />
+      <color attach="background" args={['#c5d0dc']} />
+      <fog attach="fog" args={['#c5d0dc', 16, 48]} />
 
-      <hemisphereLight args={['#f2efe8', '#6b7a8c', 0.55]} />
-      <directionalLight castShadow intensity={0.92} position={[5.2, 9.5, 4.2]} />
+      <hemisphereLight args={['#f9f6f0', '#8a96a8', 0.3]} />
+      <ambientLight intensity={0.09} />
+      <directionalLight
+        castShadow
+        intensity={0.34}
+        color="#fff5eb"
+        position={[7, 12, 6]}
+        shadow-bias={-0.00022}
+        shadow-normalBias={0.02}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      />
 
       <FirstPersonRig spawn={house.spawn} lookEnabled={pointerLookEnabled} />
 
@@ -33,6 +44,7 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
         <>
           <ProceduralRoom />
           <Corridors />
+          <InteriorLights />
         </>
       )}
 
@@ -47,5 +59,5 @@ export function configureRenderer(gl: THREE.WebGLRenderer) {
   gl.shadowMap.enabled = true
   gl.shadowMap.type = THREE.PCFSoftShadowMap
   gl.toneMapping = THREE.ACESFilmicToneMapping
-  gl.toneMappingExposure = 0.95
+  gl.toneMappingExposure = 1.05
 }
