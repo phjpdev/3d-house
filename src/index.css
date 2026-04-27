@@ -1,0 +1,362 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1114;
+  --panel: rgba(18, 20, 24, 0.82);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text: #e8eaef;
+  --muted: #9aa3b2;
+  --accent: #c4a574;
+  --danger: #e57373;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.experience {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.experience canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.boot-screen {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 18px 20px;
+  text-align: left;
+}
+
+.hud-top,
+.hud-bottom {
+  pointer-events: auto;
+}
+
+.hud-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.hud-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.hud-tagline {
+  margin: 4px 0 0;
+  max-width: 42ch;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.hud-btn {
+  pointer-events: auto;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.hud-btn:hover {
+  border-color: rgba(196, 165, 116, 0.45);
+}
+
+.hud-bottom p {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.45;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  backdrop-filter: blur(8px);
+}
+
+kbd {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.78em;
+  border: 1px solid var(--panel-border);
+  border-bottom-width: 2px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--text);
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 8, 12, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 20;
+  padding: 18px;
+}
+
+.modal-card {
+  width: min(720px, 100%);
+  max-height: min(88vh, 900px);
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  background: #14161c;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.modal-image {
+  display: block;
+  width: 100%;
+  max-height: 46vh;
+  object-fit: contain;
+  background: #0b0c10;
+}
+
+.modal-body {
+  padding: 16px 18px 18px;
+}
+
+.modal-title {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.modal-caption {
+  margin: 0;
+  color: #cfd6e6;
+  line-height: 1.55;
+  font-size: 0.98rem;
+}
+
+.modal-audio {
+  margin-top: 14px;
+}
+
+.modal-audio audio {
+  width: 100%;
+}
+
+.modal-muted {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.owner-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px;
+  background: rgba(6, 8, 12, 0.35);
+}
+
+.owner-panel {
+  width: min(440px, 100%);
+  height: min(92vh, 900px);
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  background: rgba(16, 18, 22, 0.94);
+  padding: 14px 14px 18px;
+  backdrop-filter: blur(10px);
+}
+
+.owner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.owner-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.owner-lede {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.field input {
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: #0f1116;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 0.92rem;
+}
+
+.owner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.owner-actions button,
+.owner-row button {
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: #12141a;
+  color: var(--text);
+  padding: 8px 10px;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.owner-actions button:hover,
+.owner-row button:hover {
+  border-color: rgba(196, 165, 116, 0.45);
+}
+
+.owner-rule {
+  border: none;
+  border-top: 1px solid var(--panel-border);
+  margin: 14px 0;
+}
+
+.owner-section-title {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.owner-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ghost {
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+
+.ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ghost.danger {
+  color: var(--danger);
+}
+
+.exhibit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exhibit-row {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.exhibit-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pill {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  color: var(--muted);
+}
+
+.mini {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.mini input {
+  font-size: 0.8rem;
+}
