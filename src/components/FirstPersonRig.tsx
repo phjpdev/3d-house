@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js'
 import * as THREE from 'three'
+import { lookDragSync } from '../lib/lookDragSync'
 import { ROOM } from './ProceduralRoom'
 
 const SPEED = 2.15
 const PLAYER_R = 0.22
 const EYE = 1.55
+const LOOK_SENS = 0.0032
+/** Pixels of movement before we treat the gesture as “look drag”, not a tap */
+const DRAG_THRESHOLD_PX = 6
+const PITCH_MIN = -1.22
+const PITCH_MAX = 1.32
 
 /** World point ahead of the viewer from spawn + yaw (keeps first frame horizontal, facing into the room). */
 function initialLookTarget(
@@ -22,7 +27,7 @@ function initialLookTarget(
 
 type Props = {
   spawn: { position: [number, number, number]; rotationY: number }
-  /** When false, pointer lock is released if active */
+  /** When false, drag look is disabled (e.g. owner panel open) */
   lookEnabled: boolean
 }
 
@@ -32,14 +37,6 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
   const forward = useRef(new THREE.Vector3())
   const right = useRef(new THREE.Vector3())
   const move = useRef(new THREE.Vector3())
-
-  const controls = useMemo(() => {
-    const c = new PointerLockControls(camera, gl.domElement)
-    /* Slightly narrower than full ±90° so you cannot snap to “staring at shoes” or ceiling. */
-    c.minPolarAngle = 0.12
-    c.maxPolarAngle = Math.PI - 0.18
-    return c
-  }, [camera, gl.domElement])
 
   const sx = spawn.position[0]
   const sy = spawn.position[1]
@@ -55,10 +52,14 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
     camera.position.set(0, EYE, 0)
     g.position.set(sx, sy, sz)
 
-    /* Face into the room (avoids a pitched-down quaternion from fighting the rig). */
     camera.rotation.order = 'YXZ'
     camera.updateMatrixWorld(true)
-    camera.lookAt(initialLookTarget(spawn, EYE))
+    camera.lookAt(
+      initialLookTarget(
+        { position: [sx, sy, sz], rotationY: spawnYaw },
+        EYE,
+      ),
+    )
 
     return () => {
       g.remove(camera)
@@ -66,15 +67,101 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
   }, [camera, sx, sy, sz, spawnYaw])
 
   useEffect(() => {
-    controls.enabled = lookEnabled
-    if (!lookEnabled && controls.isLocked) controls.unlock()
-  }, [controls, lookEnabled])
+    const el = gl.domElement
 
-  useEffect(() => {
-    return () => {
-      controls.dispose()
+    let dragging = false
+    let startX = 0
+    let startY = 0
+    let lastX = 0
+    let lastY = 0
+    let meaningfulMove = false
+
+    const applyLook = (clientX: number, clientY: number) => {
+      const dx = clientX - lastX
+      const dy = clientY - lastY
+      lastX = clientX
+      lastY = clientY
+      if (Math.abs(dx) + Math.abs(dy) < 0.001) return
+
+      const distFromStart = Math.hypot(clientX - startX, clientY - startY)
+      if (distFromStart > DRAG_THRESHOLD_PX) meaningfulMove = true
+
+      camera.rotation.order = 'YXZ'
+      camera.rotation.y -= dx * LOOK_SENS
+      camera.rotation.x -= dy * LOOK_SENS
+      camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x, PITCH_MIN, PITCH_MAX)
     }
-  }, [controls])
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (!lookEnabled || e.button !== 0) return
+      dragging = true
+      meaningfulMove = false
+      startX = lastX = e.clientX
+      startY = lastY = e.clientY
+      try {
+        el.setPointerCapture(e.pointerId)
+      } catch {
+        /* ignore */
+      }
+      el.style.cursor = 'grabbing'
+    }
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!lookEnabled || !dragging) return
+      applyLook(e.clientX, e.clientY)
+    }
+
+    const endDrag = (e: PointerEvent) => {
+      if (!dragging) return
+      dragging = false
+      if (meaningfulMove) lookDragSync.blockNextExhibitClick = true
+      try {
+        el.releasePointerCapture(e.pointerId)
+      } catch {
+        /* ignore */
+      }
+      el.style.cursor = lookEnabled ? 'grab' : 'auto'
+    }
+
+    const onLostCapture = () => {
+      dragging = false
+      if (meaningfulMove) lookDragSync.blockNextExhibitClick = true
+      el.style.cursor = lookEnabled ? 'grab' : 'auto'
+    }
+
+    const onPointerLeave = () => {
+      if (!dragging) el.style.cursor = lookEnabled ? 'grab' : 'auto'
+    }
+
+    const onPointerEnter = () => {
+      if (lookEnabled && !dragging) el.style.cursor = 'grab'
+    }
+
+    const onContextMenu = (e: Event) => e.preventDefault()
+
+    el.addEventListener('pointerdown', onPointerDown)
+    el.addEventListener('pointermove', onPointerMove)
+    el.addEventListener('pointerup', endDrag)
+    el.addEventListener('pointercancel', endDrag)
+    el.addEventListener('lostpointercapture', onLostCapture)
+    el.addEventListener('pointerleave', onPointerLeave)
+    el.addEventListener('pointerenter', onPointerEnter)
+    el.addEventListener('contextmenu', onContextMenu)
+
+    if (lookEnabled) el.style.cursor = 'grab'
+
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown)
+      el.removeEventListener('pointermove', onPointerMove)
+      el.removeEventListener('pointerup', endDrag)
+      el.removeEventListener('pointercancel', endDrag)
+      el.removeEventListener('lostpointercapture', onLostCapture)
+      el.removeEventListener('pointerleave', onPointerLeave)
+      el.removeEventListener('pointerenter', onPointerEnter)
+      el.removeEventListener('contextmenu', onContextMenu)
+      el.style.cursor = 'auto'
+    }
+  }, [gl.domElement, camera, lookEnabled])
 
   useFrame((_, dt) => {
     if (!rig.current) return

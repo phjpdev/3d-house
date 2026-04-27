@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type { ThreeEvent } from '@react-three/fiber'
 import * as THREE from 'three'
+import { lookDragSync } from '../lib/lookDragSync'
 import type { ExhibitConfig } from '../types/house'
 
 type Props = {
@@ -59,6 +60,10 @@ export function ExhibitMesh({ exhibit, onOpen }: Props) {
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
+    if (lookDragSync.blockNextExhibitClick) {
+      lookDragSync.blockNextExhibitClick = false
+      return
+    }
     onOpen(exhibit.id)
   }
 
