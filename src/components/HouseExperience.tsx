@@ -55,9 +55,9 @@ export function HouseExperience() {
         </div>
         <div className="hud-bottom">
           <p>
-            <strong>Drag</strong> with the left mouse button on the room to look around. Walk with{' '}
-            <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> or arrows. Click a framed photo (without
-            dragging) to read its story.
+            <strong>Drag</strong> on the room to look around. Walk with <kbd>W</kbd> <kbd>A</kbd>{' '}
+            <kbd>S</kbd> <kbd>D</kbd> or arrows — explore the south corridor and the east wing. Tap a
+            framed photo (without dragging) to read its story.
           </p>
         </div>
       </div>

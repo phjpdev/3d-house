@@ -1,7 +1,7 @@
 {
   "id": "demo",
   "name": "Demo memory room",
-  "tagline": "One room — wall frames and a desk photo. Replace content via JSON or the owner panel.",
+  "tagline": "Living room plus south and east corridors — wall frames and a desk photo. Replace content via JSON or the owner panel.",
   "roomGltfUrl": null,
   "spawn": {
     "position": [0, 0, 2.2],

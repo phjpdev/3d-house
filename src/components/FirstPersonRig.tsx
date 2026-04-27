@@ -2,10 +2,9 @@ import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { lookDragSync } from '../lib/lookDragSync'
-import { ROOM } from './ProceduralRoom'
+import { resolveWalkPosition } from '../lib/houseLayout'
 
 const SPEED = 2.15
-const PLAYER_R = 0.22
 const EYE = 1.55
 const LOOK_SENS = 0.0032
 /** Pixels of movement before we treat the gesture as “look drag”, not a tap */
@@ -182,10 +181,9 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
       const p = rig.current.position
       const nx = p.x + move.current.x
       const nz = p.z + move.current.z
-      const maxX = ROOM.half - PLAYER_R
-      const maxZ = ROOM.half - PLAYER_R
-      p.x = THREE.MathUtils.clamp(nx, -maxX, maxX)
-      p.z = THREE.MathUtils.clamp(nz, -maxZ, maxZ)
+      const [rx, rz] = resolveWalkPosition(nx, nz, p.x, p.z)
+      p.x = rx
+      p.z = rz
     }
   })
 

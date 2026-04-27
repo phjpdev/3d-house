@@ -1,16 +1,10 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
+import { ROOM } from '../lib/houseLayout'
 
 const wallColor = '#e8e4dc'
 const floorColor = '#c4b8a5'
 const trimColor = '#6b5b4d'
-
-/** Inner walkable half-extents (meters), matching FirstPerson collision */
-export const ROOM = {
-  half: 3.75 as const,
-  wallT: 0.14 as const,
-  height: 3.05 as const,
-}
 
 export function ProceduralRoom() {
   const floorMat = useMemo(
