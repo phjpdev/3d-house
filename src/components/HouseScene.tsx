@@ -1,13 +1,16 @@
-import { Suspense } from 'react'
+import { useEffect, Suspense } from 'react'
+import { ContactShadows, Environment, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import type { HouseConfig } from '../types/house'
-import { Corridors } from './Corridors'
 import { ExhibitMesh } from './ExhibitMesh'
 import { FirstPersonRig, KeyboardTracker } from './FirstPersonRig'
+import { FurnitureMesh } from './FurnitureMesh'
 import { GltfRoom } from './GltfRoom'
-import { InteriorLights } from './InteriorLights'
-import { ProceduralRoom } from './ProceduralRoom'
+import { InteriorShell } from './InteriorShell'
 import { SunLight } from './SunLight'
+
+/** Matches wall/floor warmth so fog reads as interior haze, not outdoor sky. */
+const INTERIOR_BG = '#ddd6cc'
 
 type Props = {
   house: HouseConfig
@@ -16,14 +19,25 @@ type Props = {
 }
 
 export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) {
+  useEffect(() => {
+    for (const f of house.furniture ?? []) {
+      useGLTF.preload(f.url)
+    }
+  }, [house.furniture])
+
   return (
     <>
       <KeyboardTracker />
-      <color attach="background" args={['#c5d0dc']} />
-      <fog attach="fog" args={['#c5d0dc', 16, 48]} />
+      {/* drei SoftShadows disposes every scene material on mount — breaks memoized materials → blank scene */}
+      <color attach="background" args={[INTERIOR_BG]} />
+      <fog attach="fog" args={[INTERIOR_BG, 18, 52]} />
 
-      <hemisphereLight args={['#f9f6f0', '#8a96a8', 0.3]} />
-      <ambientLight intensity={0.09} />
+      <Suspense fallback={null}>
+        <Environment preset="apartment" environmentIntensity={0.42} />
+      </Suspense>
+
+      <hemisphereLight args={['#faf6ef', '#c9c0b4', 0.38]} />
+      <ambientLight intensity={0.055} color="#f2ebe3" />
       <SunLight />
 
       <FirstPersonRig spawn={house.spawn} lookEnabled={pointerLookEnabled} />
@@ -31,14 +45,24 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
       {house.roomGltfUrl ? (
         <Suspense fallback={null}>
           <GltfRoom url={house.roomGltfUrl} />
+      {house.furniture?.map((item) => (
+        <FurnitureMesh key={`${item.id}:${item.url}`} item={item} />
+      ))}
         </Suspense>
       ) : (
-        <>
-          <ProceduralRoom />
-          <Corridors />
-          <InteriorLights />
-        </>
+        <Suspense fallback={null}>
+          <InteriorShell house={house} />
+        </Suspense>
       )}
+
+      <ContactShadows
+        position={[0, 0.002, 0]}
+        opacity={0.32}
+        scale={22}
+        blur={2.4}
+        far={9}
+        color="#1a1410"
+      />
 
       {house.exhibits.map((ex) => (
         <ExhibitMesh
@@ -55,6 +79,7 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
 export function configureRenderer(gl: THREE.WebGLRenderer) {
   gl.shadowMap.enabled = true
   gl.shadowMap.type = THREE.PCFSoftShadowMap
+  gl.outputColorSpace = THREE.SRGBColorSpace
   gl.toneMapping = THREE.ACESFilmicToneMapping
-  gl.toneMappingExposure = 1.05
+  gl.toneMappingExposure = 0.88
 }

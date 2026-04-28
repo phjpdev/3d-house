@@ -3,6 +3,16 @@
   "name": "Demo memory room",
   "tagline": "Living room plus south and east corridors — frames in the halls, desk photo, and owner JSON.",
   "roomGltfUrl": null,
+  "builtInDesk": true,
+  "furniture": [
+    {
+      "id": "reading-chair",
+      "url": "/models/sheen-chair.glb",
+      "position": [2.08, 0, -0.48],
+      "rotationY": 2.15,
+      "scale": 0.52
+    }
+  ],
   "spawn": {
     "position": [0, 0, 2.2],
     "rotationY": 0

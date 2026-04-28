@@ -1,5 +1,15 @@
 export type ExhibitKind = 'wall_frame' | 'desk_photo'
 
+/** Optional glTF prop (chair, table, etc.). Path is under site root or an absolute URL. */
+export interface FurnitureConfig {
+  id: string
+  url: string
+  position: [number, number, number]
+  rotationY?: number
+  /** Uniform scale; models vary in units — tune per asset */
+  scale?: number
+}
+
 export interface ExhibitConfig {
   id: string
   kind: ExhibitKind
@@ -23,6 +33,13 @@ export interface HouseConfig {
   tagline?: string
   /** When set, loads `/public/...` glTF room instead of the built-in procedural room */
   roomGltfUrl?: string | null
+  /**
+   * When using the procedural shell: extra glTF pieces (CC0 models from `/models/...` or URLs).
+   * For a full scanned room via `roomGltfUrl`, leave empty unless you want add-on props.
+   */
+  furniture?: FurnitureConfig[]
+  /** Procedural shell only: rounded wood desk near the east wall (default true) */
+  builtInDesk?: boolean
   spawn: {
     position: [number, number, number]
     rotationY: number

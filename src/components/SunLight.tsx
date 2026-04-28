@@ -6,8 +6,8 @@ export function SunLight() {
   return (
     <directionalLight
       castShadow
-      intensity={0.24}
-      color="#fff6ed"
+      intensity={0.18}
+      color="#fff4e6"
       position={[0.6, 13.5, 0.45]}
       shadow-bias={-0.00018}
       shadow-normalBias={0.045}

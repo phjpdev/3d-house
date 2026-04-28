@@ -20,8 +20,9 @@ function CeilingLamp({ position, intensity = 22 }: LampProps) {
         color: '#ece8e0',
         roughness: 0.45,
         metalness: 0.15,
+        envMapIntensity: 0.35,
         emissive: '#fff3e0',
-        emissiveIntensity: 0.08,
+        emissiveIntensity: 0.06,
       }),
     [],
   )
@@ -30,8 +31,9 @@ function CeilingLamp({ position, intensity = 22 }: LampProps) {
       new THREE.MeshStandardMaterial({
         color: '#fffff5',
         emissive: '#ffe8c8',
-        emissiveIntensity: 0.45,
+        emissiveIntensity: 0.38,
         toneMapped: true,
+        envMapIntensity: 0.5,
       }),
     [],
   )
@@ -41,9 +43,9 @@ function CeilingLamp({ position, intensity = 22 }: LampProps) {
       <pointLight
         position={[0, -0.06, 0]}
         intensity={intensity}
-        distance={14}
+        distance={16}
         decay={2}
-        color="#fff4e6"
+        color="#ffeedd"
       />
       <mesh position={[0, -0.04, 0]} receiveShadow material={shade}>
         <cylinderGeometry args={[0.2, 0.24, 0.09, 32]} />
@@ -61,9 +63,9 @@ export function InteriorLights() {
 
   return (
     <group name="InteriorLights">
-      <CeilingLamp position={[0, CEILING_Y, 0]} intensity={26} />
-      <CeilingLamp position={[0, CEILING_Y, zSouthMid]} intensity={18} />
-      <CeilingLamp position={[eastFloorCx, CEILING_Y, zEastMid]} intensity={16} />
+      <CeilingLamp position={[0, CEILING_Y, 0]} intensity={20} />
+      <CeilingLamp position={[0, CEILING_Y, zSouthMid]} intensity={14} />
+      <CeilingLamp position={[eastFloorCx, CEILING_Y, zEastMid]} intensity={12} />
     </group>
   )
 }

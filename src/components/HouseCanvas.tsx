@@ -9,15 +9,17 @@ type Props = {
 }
 
 /** Stable reference — inline `camera={{}}` on each render resets R3F default camera and breaks FPS rig. */
-const CANVAS_CAMERA = { fov: 56, near: 0.08, far: 60 } as const
+/** Slightly narrower FOV reads closer to a phone / wide photo of a real room. */
+const CANVAS_CAMERA = { fov: 52, near: 0.08, far: 60 } as const
 
 export function HouseCanvas({ house, onOpenExhibit, pointerLookEnabled }: Props) {
   return (
     <Canvas
       key={house.id}
       shadows
+      dpr={[1, 2]}
       camera={CANVAS_CAMERA}
-      gl={{ antialias: true, alpha: false }}
+      gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
       onCreated={({ gl }) => configureRenderer(gl)}
     >
       <HouseScene

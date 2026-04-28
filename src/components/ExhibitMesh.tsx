@@ -12,17 +12,17 @@ type Props = {
   pointerLookEnabled?: boolean
 }
 
-function useImageTexture(url?: string) {
+function useImageTexture(url: string | undefined, maxAnisotropy: number) {
   return useMemo(() => {
     if (!url) return null
     const loader = new THREE.TextureLoader()
     loader.setCrossOrigin('anonymous')
     const tex = loader.load(url)
     tex.colorSpace = THREE.SRGBColorSpace
-    tex.anisotropy = 4
+    tex.anisotropy = Math.min(maxAnisotropy, 16)
     tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping
     return tex
-  }, [url])
+  }, [url, maxAnisotropy])
 }
 
 function setHoverCursor(
@@ -62,19 +62,25 @@ function DeskPhotoExhibit({
 
   const frameMat = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({
+      new THREE.MeshPhysicalMaterial({
         color: '#5c4a3a',
-        roughness: 0.55,
-        metalness: 0.12,
+        roughness: 0.56,
+        metalness: 0.1,
+        clearcoat: 0.35,
+        clearcoatRoughness: 0.55,
+        envMapIntensity: 0.5,
       }),
     [],
   )
   const standMat = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({
+      new THREE.MeshPhysicalMaterial({
         color: '#4a3d32',
-        roughness: 0.7,
-        metalness: 0.05,
+        roughness: 0.68,
+        metalness: 0.06,
+        clearcoat: 0.2,
+        clearcoatRoughness: 0.65,
+        envMapIntensity: 0.45,
       }),
     [],
   )
@@ -82,8 +88,9 @@ function DeskPhotoExhibit({
     return new THREE.MeshStandardMaterial({
       color: tex ? '#ffffff' : '#d4cec4',
       map: tex,
-      roughness: 0.55,
+      roughness: 0.58,
       metalness: 0.02,
+      envMapIntensity: 0.35,
     })
   }, [tex])
 
@@ -160,7 +167,8 @@ export function ExhibitMesh({
 }: Props) {
   const group = useRef<THREE.Group>(null)
   const { gl } = useThree()
-  const tex = useImageTexture(exhibit.imageUrl)
+  const maxAniso = Math.max(4, gl.capabilities.getMaxAnisotropy?.() ?? 4)
+  const tex = useImageTexture(exhibit.imageUrl, maxAniso)
   const canvas = gl.domElement
 
   useFrame(() => {
@@ -189,20 +197,24 @@ export function ExhibitMesh({
     const m = new THREE.MeshStandardMaterial({
       color: tex ? '#ffffff' : '#c9c2b8',
       map: tex,
-      roughness: 0.65,
-      metalness: 0.05,
+      roughness: 0.62,
+      metalness: 0.04,
       emissive: '#0a0a0a',
-      emissiveIntensity: 0.06,
+      emissiveIntensity: 0.05,
+      envMapIntensity: 0.38,
     })
     return m
   }, [tex])
 
   const frameMat = useMemo(
     () =>
-      new THREE.MeshStandardMaterial({
+      new THREE.MeshPhysicalMaterial({
         color: '#2a2622',
-        roughness: 0.55,
-        metalness: 0.1,
+        roughness: 0.56,
+        metalness: 0.09,
+        clearcoat: 0.4,
+        clearcoatRoughness: 0.52,
+        envMapIntensity: 0.55,
       }),
     [],
   )

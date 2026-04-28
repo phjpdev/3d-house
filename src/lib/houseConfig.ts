@@ -5,6 +5,8 @@ const defaultConfig: HouseConfig = {
   name: 'Empty house',
   tagline: 'Could not load house JSON.',
   roomGltfUrl: null,
+  furniture: [],
+  builtInDesk: true,
   spawn: { position: [0, 0, 0], rotationY: 0 },
   backgroundMusicUrl: null,
   exhibits: [],
@@ -25,6 +27,8 @@ export async function fetchHouseConfig(slug: string): Promise<HouseConfig> {
 export function normalizeHouse(input: HouseConfig): HouseConfig {
   return {
     ...input,
+    furniture: input.furniture ?? [],
+    builtInDesk: input.builtInDesk ?? true,
     exhibits: (input.exhibits ?? []).map((e) => ({
       rotationY: 0,
       width: e.kind === 'wall_frame' ? 0.9 : 0.3,

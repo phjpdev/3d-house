@@ -1,12 +1,5 @@
-import { useMemo } from 'react'
-import * as THREE from 'three'
+import type { InteriorShellMaterials } from '../types/interiorMaterials'
 import { CORRIDOR, CORRIDOR_GEOM, ROOM } from '../lib/houseLayout'
-
-const wallColor = '#e6e2d8'
-const floorColor = '#b8ae9c'
-const trimColor = '#5c4f42'
-/** Slightly lighter than walls — reads as painted ceiling */
-const ceilingColor = '#ebe7df'
 
 const h = ROOM.height
 const t = ROOM.wallT
@@ -19,47 +12,19 @@ const sl = CORRIDOR.southLen
 const hw = CORRIDOR.halfW
 const EPS = 0.03
 
+type Props = {
+  materials: InteriorShellMaterials
+}
+
 /**
  * L-shaped corridors with overlapping joins (no hairline cracks) and ceilings
  * that tuck under the main room ceiling at the door.
  */
-export function Corridors() {
-  const floorMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: floorColor,
-        roughness: 0.9,
-        metalness: 0.02,
-      }),
-    [],
-  )
-  const wallMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: wallColor,
-        roughness: 0.9,
-        metalness: 0.0,
-      }),
-    [],
-  )
-  const ceilingMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: ceilingColor,
-        roughness: 0.82,
-        metalness: 0.0,
-      }),
-    [],
-  )
-  const trimMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: trimColor,
-        roughness: 0.75,
-        metalness: 0.05,
-      }),
-    [],
-  )
+export function Corridors({ materials }: Props) {
+  const floorMat = materials.floor
+  const wallMat = materials.wall
+  const ceilingMat = materials.ceiling
+  const trimMat = materials.trim
 
   /* --- South leg (along +Z) --- */
   const zSouthFloor = ROOM.half + sl / 2

@@ -1,48 +1,15 @@
-import { useMemo } from 'react'
-import * as THREE from 'three'
+import { RoundedBox } from '@react-three/drei'
+import type { InteriorShellMaterials } from '../types/interiorMaterials'
 import { ROOM } from '../lib/houseLayout'
 
-const wallColor = '#e6e2d8'
-const floorColor = '#b8ae9c'
-const trimColor = '#6b5b4d'
+type Props = {
+  materials: InteriorShellMaterials
+  showBuiltInDesk: boolean
+}
 
-export function ProceduralRoom() {
-  const floorMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: floorColor,
-        roughness: 0.92,
-        metalness: 0.02,
-      }),
-    [],
-  )
-  const wallMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: wallColor,
-        roughness: 0.88,
-        metalness: 0.0,
-      }),
-    [],
-  )
-  const trimMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: trimColor,
-        roughness: 0.75,
-        metalness: 0.05,
-      }),
-    [],
-  )
-  const ceilingMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#ebe7df',
-        roughness: 0.82,
-        metalness: 0.0,
-      }),
-    [],
-  )
+export function ProceduralRoom({ materials, showBuiltInDesk }: Props) {
+  const { floor: floorMat, wall: wallMat, ceiling: ceilingMat, trim: trimMat, desk: deskMat } =
+    materials
 
   const w = ROOM.half * 2 + ROOM.wallT * 2
   const h = ROOM.height
@@ -126,24 +93,34 @@ export function ProceduralRoom() {
       <mesh
         name="Ceiling"
         position={[0, h, 0]}
+        receiveShadow
         material={ceilingMat}
       >
         <boxGeometry args={[w - 0.02, ROOM.wallT, w - 0.02]} />
       </mesh>
 
-      {/* Simple desk: thick top + legs as one block for silhouette */}
-      <mesh
-        name="Desk"
-        position={[2.35, 0.38, -0.9]}
-        castShadow
-        receiveShadow
-        material={trimMat}
-      >
-        <boxGeometry args={[1.15, 0.74, 0.65]} />
-      </mesh>
-      <mesh position={[2.35, 0.78, -0.9]} receiveShadow material={trimMat}>
-        <boxGeometry args={[1.25, 0.06, 0.75]} />
-      </mesh>
+      {showBuiltInDesk ? (
+        <group name="Desk" position={[2.35, 0, -0.9]}>
+          <RoundedBox
+            args={[0.92, 0.68, 0.5]}
+            radius={0.022}
+            smoothness={3}
+            position={[0, 0.34, 0]}
+            castShadow
+            receiveShadow
+            material={deskMat}
+          />
+          <RoundedBox
+            args={[1.12, 0.055, 0.72]}
+            radius={0.015}
+            smoothness={2}
+            position={[0, 0.705, 0]}
+            castShadow
+            receiveShadow
+            material={deskMat}
+          />
+        </group>
+      ) : null}
 
       {/* Baseboards */}
       <mesh position={[0, 0.12, -ROOM.half + 0.06]} material={trimMat}>
