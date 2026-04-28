@@ -10,9 +10,7 @@ type LampProps = {
   intensity?: number
 }
 
-/**
- * Simple flush ceiling fixture + warm point fill (typical residential downlight feel).
- */
+/** Smaller recessed can + warm point (for corridors / accents). */
 function CeilingLamp({ position, intensity = 22 }: LampProps) {
   const shade = useMemo(
     () =>
@@ -31,9 +29,9 @@ function CeilingLamp({ position, intensity = 22 }: LampProps) {
       new THREE.MeshStandardMaterial({
         color: '#fffff5',
         emissive: '#ffe8c8',
-        emissiveIntensity: 0.38,
+        emissiveIntensity: 0.52,
         toneMapped: true,
-        envMapIntensity: 0.5,
+        envMapIntensity: 0.55,
       }),
     [],
   )
@@ -42,30 +40,70 @@ function CeilingLamp({ position, intensity = 22 }: LampProps) {
     <group position={position}>
       <pointLight
         position={[0, -0.06, 0]}
-        intensity={intensity}
-        distance={16}
+        intensity={intensity * 1.08}
+        distance={18}
         decay={2}
-        color="#ffeedd"
+        color="#fff0e6"
       />
       <mesh position={[0, -0.04, 0]} receiveShadow material={shade}>
-        <cylinderGeometry args={[0.2, 0.24, 0.09, 32]} />
+        <cylinderGeometry args={[0.26, 0.3, 0.1, 36]} />
       </mesh>
-      <mesh position={[0, -0.12, 0]} material={bulb}>
-        <sphereGeometry args={[0.11, 16, 12]} />
+      <mesh position={[0, -0.13, 0]} material={bulb}>
+        <sphereGeometry args={[0.12, 16, 12]} />
       </mesh>
     </group>
   )
 }
 
-/** Used only with the procedural shell (room + corridors). */
+/** Cross-lit accents: key toward seating + rim from picture wall (more depth than flat fill). */
+function LivingFillSpots() {
+  return (
+    <group name="LivingFillSpots">
+      <spotLight
+        position={[0.35, 2.74, 2.2]}
+        angle={0.48}
+        penumbra={0.62}
+        intensity={16}
+        distance={16}
+        decay={2}
+        color="#fff4eb"
+        castShadow
+        shadow-bias={-0.0001}
+        shadow-normalBias={0.03}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+      >
+        <object3D attach="target" position={[-2.05, 0.32, 0.25]} />
+      </spotLight>
+      <spotLight
+        position={[-3.05, 2.68, -1.0]}
+        angle={0.42}
+        penumbra={0.55}
+        intensity={9}
+        distance={17}
+        decay={2}
+        color="#fff0e4"
+        castShadow
+        shadow-bias={-0.00008}
+        shadow-normalBias={0.026}
+        shadow-mapSize-width={1536}
+        shadow-mapSize-height={1536}
+      >
+        <object3D attach="target" position={[1.2, 0.25, -2.2]} />
+      </spotLight>
+    </group>
+  )
+}
+
+/** Used only with the procedural shell (room + corridors). Main ceiling fixtures come from house `furniture` with `mount: "ceiling"`. */
 export function InteriorLights() {
   const { zSouthMid, eastFloorCx, zEastMid } = CORRIDOR_GEOM
 
   return (
     <group name="InteriorLights">
-      <CeilingLamp position={[0, CEILING_Y, 0]} intensity={20} />
-      <CeilingLamp position={[0, CEILING_Y, zSouthMid]} intensity={14} />
-      <CeilingLamp position={[eastFloorCx, CEILING_Y, zEastMid]} intensity={12} />
+      <CeilingLamp position={[0, CEILING_Y, zSouthMid]} intensity={16} />
+      <CeilingLamp position={[eastFloorCx, CEILING_Y, zEastMid]} intensity={14} />
+      <LivingFillSpots />
     </group>
   )
 }

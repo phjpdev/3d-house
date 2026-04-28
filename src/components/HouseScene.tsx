@@ -1,6 +1,7 @@
 import { useEffect, Suspense } from 'react'
 import { ContactShadows, Environment, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import type { HouseConfig } from '../types/house'
 import { ExhibitMesh } from './ExhibitMesh'
 import { FirstPersonRig, KeyboardTracker } from './FirstPersonRig'
@@ -33,11 +34,11 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
       <fog attach="fog" args={[INTERIOR_BG, 18, 52]} />
 
       <Suspense fallback={null}>
-        <Environment preset="apartment" environmentIntensity={0.42} />
+        <Environment preset="apartment" environmentIntensity={0.58} />
       </Suspense>
 
-      <hemisphereLight args={['#faf6ef', '#c9c0b4', 0.38]} />
-      <ambientLight intensity={0.055} color="#f2ebe3" />
+      <hemisphereLight args={['#fff8f0', '#b8aea2', 0.38]} />
+      <ambientLight intensity={0.028} color="#f0e8df" />
       <SunLight />
 
       <FirstPersonRig spawn={house.spawn} lookEnabled={pointerLookEnabled} />
@@ -45,9 +46,9 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
       {house.roomGltfUrl ? (
         <Suspense fallback={null}>
           <GltfRoom url={house.roomGltfUrl} />
-      {house.furniture?.map((item) => (
-        <FurnitureMesh key={`${item.id}:${item.url}`} item={item} />
-      ))}
+          {house.furniture?.map((item) => (
+            <FurnitureMesh key={`${item.id}:${item.url}`} item={item} />
+          ))}
         </Suspense>
       ) : (
         <Suspense fallback={null}>
@@ -57,11 +58,11 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
 
       <ContactShadows
         position={[0, 0.002, 0]}
-        opacity={0.32}
+        opacity={0.44}
         scale={22}
-        blur={2.4}
+        blur={2.1}
         far={9}
-        color="#1a1410"
+        color="#14100c"
       />
 
       {house.exhibits.map((ex) => (
@@ -76,10 +77,16 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
   )
 }
 
+let rectAreaLightLibReady = false
+
 export function configureRenderer(gl: THREE.WebGLRenderer) {
+  if (!rectAreaLightLibReady) {
+    RectAreaLightUniformsLib.init()
+    rectAreaLightLibReady = true
+  }
   gl.shadowMap.enabled = true
   gl.shadowMap.type = THREE.PCFSoftShadowMap
   gl.outputColorSpace = THREE.SRGBColorSpace
   gl.toneMapping = THREE.ACESFilmicToneMapping
-  gl.toneMappingExposure = 0.88
+  gl.toneMappingExposure = 0.96
 }

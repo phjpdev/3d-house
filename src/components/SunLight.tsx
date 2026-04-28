@@ -6,13 +6,13 @@ export function SunLight() {
   return (
     <directionalLight
       castShadow
-      intensity={0.18}
-      color="#fff4e6"
-      position={[0.6, 13.5, 0.45]}
-      shadow-bias={-0.00018}
-      shadow-normalBias={0.045}
-      shadow-mapSize-width={2048}
-      shadow-mapSize-height={2048}
+      intensity={0.22}
+      color="#fff4e8"
+      position={[0.55, 13.2, 0.42]}
+      shadow-bias={-0.00014}
+      shadow-normalBias={0.038}
+      shadow-mapSize-width={3072}
+      shadow-mapSize-height={3072}
       shadow-camera-near={2}
       shadow-camera-far={22}
       shadow-camera-left={-7.5}

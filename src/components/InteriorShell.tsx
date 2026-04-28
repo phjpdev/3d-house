@@ -7,6 +7,7 @@ import { Corridors } from './Corridors'
 import { FurnitureMesh } from './FurnitureMesh'
 import { interiorTexturePaths } from './interiorTextureUrls'
 import { InteriorLights } from './InteriorLights'
+import { LivingRoomProps } from './living/LivingRoomProps'
 import { ProceduralRoom } from './ProceduralRoom'
 
 function useInteriorShellMaterials(): InteriorShellMaterials {
@@ -91,6 +92,7 @@ export function InteriorShell({ house }: Props) {
     <>
       <ProceduralRoom materials={materials} showBuiltInDesk={house.builtInDesk !== false} />
       <Corridors materials={materials} />
+      <LivingRoomProps />
       <InteriorLights />
       {house.furniture?.map((item) => (
         <FurnitureMesh key={`${item.id}:${item.url}`} item={item} />

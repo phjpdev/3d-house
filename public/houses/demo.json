@@ -6,11 +6,41 @@
   "builtInDesk": true,
   "furniture": [
     {
-      "id": "reading-chair",
-      "url": "/models/sheen-chair.glb",
-      "position": [2.08, 0, -0.48],
-      "rotationY": 2.15,
-      "scale": 0.52
+      "id": "sofa",
+      "url": "/models/manseok_kim-sofa-2118.glb",
+      "position": [-1.05, 0, -3.18],
+      "rotationY": 0,
+      "scale": 36
+    },
+    {
+      "id": "lounge-armchair",
+      "url": "/models/denielcz-armchair-2924.glb",
+      "position": [1.52, 0, -2.38],
+      "rotationY": 2.7,
+      "scale": 1
+    },
+    {
+      "id": "desk-chair",
+      "url": "/models/quaternius_cc0-office-chair-1192.glb",
+      "position": [2.32, 0, -1.38],
+      "rotationY": -0.52,
+      "scale": 0.5
+    },
+    {
+      "id": "ceiling-light-main",
+      "url": "/models/quaternius_cc0-icosahedron-light-1143.glb",
+      "position": [0.15, 0, 0.2],
+      "mount": "ceiling",
+      "scale": 0.48,
+      "lightIntensity": 34
+    },
+    {
+      "id": "ceiling-light-sofa",
+      "url": "/models/quaternius_cc0-icosahedron-light-1143.glb",
+      "position": [-2.35, 0, 0.35],
+      "mount": "ceiling",
+      "scale": 0.4,
+      "lightIntensity": 26
     }
   ],
   "spawn": {

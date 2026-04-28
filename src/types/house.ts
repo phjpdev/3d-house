@@ -1,13 +1,20 @@
 export type ExhibitKind = 'wall_frame' | 'desk_photo'
 
-/** Optional glTF prop (chair, table, etc.). Path is under site root or an absolute URL. */
+/** Optional placement: `ceiling` = hang under ceiling slab (uses `position.x/z`; `y` ignored). */
+export type FurnitureMount = 'floor' | 'ceiling'
+
+/** Optional glTF prop (chair, table, ceiling light, etc.). Path is under site root or an absolute URL. */
 export interface FurnitureConfig {
   id: string
   url: string
   position: [number, number, number]
+  rotationX?: number
   rotationY?: number
   /** Uniform scale; models vary in units — tune per asset */
   scale?: number
+  mount?: FurnitureMount
+  /** When `mount` is `ceiling`: total point-light output split across auto-placed emitters on the bulb mesh (omit to use default). */
+  lightIntensity?: number
 }
 
 export interface ExhibitConfig {
