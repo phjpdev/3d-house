@@ -73,11 +73,10 @@ export function ExhibitMesh({ exhibit, onOpen }: Props) {
       position={exhibit.position}
       rotation={[0, exhibit.rotationY ?? 0, 0]}
     >
-      <mesh castShadow material={frameMat} position={[0, 0, -frameDepth / 2]}>
+      <mesh receiveShadow material={frameMat} position={[0, 0, -frameDepth / 2]}>
         <boxGeometry args={[w + frameT * 2, h + frameT * 2, frameDepth]} />
       </mesh>
       <mesh
-        castShadow
         receiveShadow
         material={photoMat}
         position={[0, 0, frameDepth / 2 + 0.002]}

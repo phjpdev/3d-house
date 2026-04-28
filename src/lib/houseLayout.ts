@@ -19,19 +19,37 @@ export const PLAYER_RADIUS = 0.22
 const PR = PLAYER_RADIUS
 const HX = ROOM.half - PR
 const HZ = ROOM.half - PR
-const CX = Math.min(HX, 0.65 - PR)
 
 const hw = CORRIDOR.halfW
 const sl = CORRIDOR.southLen
 const el = CORRIDOR.eastLen
 
+/** Inner clear half-span of the south door (between jamb blocks) */
+const DOOR_HALF = 0.65
+/** Narrow south strip (door throat) */
+const CX = Math.min(HX, DOOR_HALF - PR)
+/** Wider south strip near the east turn so you can reach +X into the east wing */
+const CX_WIDE = Math.min(HX, hw - PR + 0.05)
+
 const zEastHalf = hw * 1.02
 const zEastMid = ROOM.half + sl - zEastHalf
 const xEast0 = hw - 0.04
-const eastFloorLen = el + hw * 0.5
-const eastFloorCx = xEast0 + eastFloorLen / 2
 
-/** Shared numbers for `Corridors.tsx` meshes and walk logic */
+/** Begin using CX_WIDE before the east Z band so movement never dead-ends */
+const Z_JUNC = zEastMid - zEastHalf - 0.4
+
+/** East floor extends west into the south leg for a smooth walk mesh + collision */
+const eastFloorLen = el + hw * 0.5 + 0.5
+const eastFloorLeft = 0.22
+const eastFloorCx = eastFloorLeft + eastFloorLen / 2
+
+const EAST_X_MIN = eastFloorLeft + PR
+const EAST_X_MAX = HX
+const EAST_Z_MIN = zEastMid - zEastHalf + PR
+const EAST_Z_MAX = zEastMid + zEastHalf - PR
+
+const Z_SOUTH_MAX = ROOM.half + sl - PR
+
 export const CORRIDOR_GEOM = {
   zSouthMid: ROOM.half + sl / 2,
   xEast0,
@@ -39,18 +57,17 @@ export const CORRIDOR_GEOM = {
   zEastHalf,
   zEastMid,
   eastFloorCx,
+  eastFloorLeft,
 } as const
-
-const EAST_X_MIN = xEast0 + PR
-const EAST_X_MAX = HX
-const EAST_Z_MIN = zEastMid - zEastHalf + PR
-const EAST_Z_MAX = zEastMid + zEastHalf - PR
-
-const Z_SOUTH_MAX = ROOM.half + sl - PR
 
 export function inWalkable(x: number, z: number): boolean {
   if (Math.abs(x) <= HX && Math.abs(z) <= HZ) return true
-  if (Math.abs(x) <= CX && z > HZ && z <= Z_SOUTH_MAX) return true
+
+  if (z > HZ && z <= Z_SOUTH_MAX) {
+    const half = z >= Z_JUNC ? CX_WIDE : CX
+    if (Math.abs(x) <= half) return true
+  }
+
   if (x >= EAST_X_MIN && x <= EAST_X_MAX && z >= EAST_Z_MIN && z <= EAST_Z_MAX) return true
   return false
 }

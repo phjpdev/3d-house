@@ -7,6 +7,7 @@ import { FirstPersonRig, KeyboardTracker } from './FirstPersonRig'
 import { GltfRoom } from './GltfRoom'
 import { InteriorLights } from './InteriorLights'
 import { ProceduralRoom } from './ProceduralRoom'
+import { SunLight } from './SunLight'
 
 type Props = {
   house: HouseConfig
@@ -23,16 +24,7 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
 
       <hemisphereLight args={['#f9f6f0', '#8a96a8', 0.3]} />
       <ambientLight intensity={0.09} />
-      <directionalLight
-        castShadow
-        intensity={0.34}
-        color="#fff5eb"
-        position={[7, 12, 6]}
-        shadow-bias={-0.00022}
-        shadow-normalBias={0.02}
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-      />
+      <SunLight />
 
       <FirstPersonRig spawn={house.spawn} lookEnabled={pointerLookEnabled} />
 

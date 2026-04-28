@@ -46,6 +46,10 @@ export function ProceduralRoom() {
 
   const w = ROOM.half * 2 + ROOM.wallT * 2
   const h = ROOM.height
+  /** Walls extend into the ceiling slab so there is no bright gap at the cornice */
+  const WALL_EXT = 0.22
+  const hWall = h + WALL_EXT
+  const yWallCtr = hWall / 2 - ROOM.wallT
 
   return (
     <group name="ProceduralRoom">
@@ -61,67 +65,67 @@ export function ProceduralRoom() {
       {/* North wall (+Z in our exhibit positions use -Z face — inner face at z = -ROOM.half) */}
       <mesh
         name="WallNorth"
-        position={[0, h / 2 - ROOM.wallT, -ROOM.half - ROOM.wallT / 2]}
+        position={[0, yWallCtr, -ROOM.half - ROOM.wallT / 2]}
         castShadow
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[w, h, ROOM.wallT]} />
+        <boxGeometry args={[w, hWall, ROOM.wallT]} />
       </mesh>
 
       {/* South wall with door gap for future porch flow; collision still full box in v1 */}
       <mesh
         name="WallSouthLeft"
-        position={[-2.2, h / 2 - ROOM.wallT, ROOM.half + ROOM.wallT / 2]}
+        position={[-2.2, yWallCtr, ROOM.half + ROOM.wallT / 2]}
         castShadow
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[3.1, h, ROOM.wallT]} />
+        <boxGeometry args={[3.1, hWall, ROOM.wallT]} />
       </mesh>
       <mesh
         name="WallSouthRight"
-        position={[2.2, h / 2 - ROOM.wallT, ROOM.half + ROOM.wallT / 2]}
+        position={[2.2, yWallCtr, ROOM.half + ROOM.wallT / 2]}
         castShadow
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[3.1, h, ROOM.wallT]} />
+        <boxGeometry args={[3.1, hWall, ROOM.wallT]} />
       </mesh>
+      {/* Transom: span full door opening (1.3 m) plus overlap so top corners do not show sky */}
       <mesh
         name="WallSouthHeader"
-        position={[0, h - 0.35, ROOM.half + ROOM.wallT / 2]}
+        position={[0, h - 0.34, ROOM.half + ROOM.wallT / 2]}
         castShadow
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[1.2, 0.7, ROOM.wallT]} />
+        <boxGeometry args={[1.38, 0.74, ROOM.wallT]} />
       </mesh>
 
       <mesh
         name="WallEast"
-        position={[ROOM.half + ROOM.wallT / 2, h / 2 - ROOM.wallT, 0]}
+        position={[ROOM.half + ROOM.wallT / 2, yWallCtr, 0]}
         castShadow
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[ROOM.wallT, h, w]} />
+        <boxGeometry args={[ROOM.wallT, hWall, w]} />
       </mesh>
 
       <mesh
         name="WallWest"
-        position={[-ROOM.half - ROOM.wallT / 2, h / 2 - ROOM.wallT, 0]}
+        position={[-ROOM.half - ROOM.wallT / 2, yWallCtr, 0]}
         castShadow
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[ROOM.wallT, h, w]} />
+        <boxGeometry args={[ROOM.wallT, hWall, w]} />
       </mesh>
 
       <mesh
         name="Ceiling"
         position={[0, h, 0]}
-        receiveShadow
         material={ceilingMat}
       >
         <boxGeometry args={[w - 0.02, ROOM.wallT, w - 0.02]} />
@@ -137,7 +141,7 @@ export function ProceduralRoom() {
       >
         <boxGeometry args={[1.15, 0.74, 0.65]} />
       </mesh>
-      <mesh position={[2.35, 0.78, -0.9]} castShadow material={trimMat}>
+      <mesh position={[2.35, 0.78, -0.9]} receiveShadow material={trimMat}>
         <boxGeometry args={[1.25, 0.06, 0.75]} />
       </mesh>
 

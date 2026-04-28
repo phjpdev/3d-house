@@ -45,7 +45,7 @@ function CeilingLamp({ position, intensity = 22 }: LampProps) {
         decay={2}
         color="#fff4e6"
       />
-      <mesh position={[0, -0.04, 0]} castShadow receiveShadow material={shade}>
+      <mesh position={[0, -0.04, 0]} receiveShadow material={shade}>
         <cylinderGeometry args={[0.2, 0.24, 0.09, 32]} />
       </mesh>
       <mesh position={[0, -0.12, 0]} material={bulb}>

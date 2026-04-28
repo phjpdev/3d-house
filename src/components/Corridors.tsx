@@ -10,12 +10,14 @@ const ceilingColor = '#ebe7df'
 
 const h = ROOM.height
 const t = ROOM.wallT
+const WALL_EXT = 0.22
+const hWall = h + WALL_EXT
+const yWall = hWall / 2 - t
+
 const { zSouthMid, eastFloorLen, zEastHalf, zEastMid, eastFloorCx } = CORRIDOR_GEOM
 const sl = CORRIDOR.southLen
 const hw = CORRIDOR.halfW
-
 const EPS = 0.03
-const yWall = h / 2 - t
 
 /**
  * L-shaped corridors with overlapping joins (no hairline cracks) and ceilings
@@ -92,7 +94,7 @@ export function Corridors() {
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[t, h, sl + t + EPS]} />
+        <boxGeometry args={[t, hWall, sl + t + EPS]} />
       </mesh>
 
       {/* East wall — lower segment (before east opening) */}
@@ -103,7 +105,7 @@ export function Corridors() {
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[t, h, Math.max(0.12, dEastWall1)]} />
+        <boxGeometry args={[t, hWall, Math.max(0.12, dEastWall1)]} />
       </mesh>
 
       {/* East wall — upper segment (only if there is solid past the east opening) */}
@@ -115,7 +117,7 @@ export function Corridors() {
           receiveShadow
           material={wallMat}
         >
-          <boxGeometry args={[t, h, eastUpperDepth]} />
+          <boxGeometry args={[t, hWall, eastUpperDepth]} />
         </mesh>
       ) : null}
 
@@ -127,7 +129,7 @@ export function Corridors() {
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[hw * 1.35 + EPS, h, t + EPS]} />
+        <boxGeometry args={[hw * 1.35 + EPS, hWall, t + EPS]} />
       </mesh>
       <mesh
         name="CorridorSouthEndRight"
@@ -136,14 +138,13 @@ export function Corridors() {
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[hw * 0.62 + EPS, h, t + EPS]} />
+        <boxGeometry args={[hw * 0.62 + EPS, hWall, t + EPS]} />
       </mesh>
 
       {/* South ceiling — overlaps main room ceiling edge + east ceiling */}
       <mesh
         name="CorridorSouthCeiling"
         position={[0, h, zCeilSouthMid]}
-        receiveShadow
         material={ceilingMat}
       >
         <boxGeometry args={[ceilSouthW, t, ceilSouthDepth]} />
@@ -167,7 +168,7 @@ export function Corridors() {
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[eastFloorLen + t + EPS * 2, h, t + EPS]} />
+        <boxGeometry args={[eastFloorLen + t + EPS * 2, hWall, t + EPS]} />
       </mesh>
       <mesh
         name="CorridorEastWallSouth"
@@ -176,7 +177,7 @@ export function Corridors() {
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[eastFloorLen + t + EPS * 2, h, t + EPS]} />
+        <boxGeometry args={[eastFloorLen + t + EPS * 2, hWall, t + EPS]} />
       </mesh>
 
       {/* East outer wall — flush with main east wall plane */}
@@ -187,22 +188,21 @@ export function Corridors() {
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[t + EPS, h, zEastHalf * 2 + t * 2 + EPS * 2]} />
+        <boxGeometry args={[t + EPS, hWall, zEastHalf * 2 + t * 2 + EPS * 2]} />
       </mesh>
 
       {/* East ceiling — overlaps south ceiling at the bend */}
       <mesh
         name="CorridorEastCeiling"
         position={[eastFloorCx, h, zEastMid]}
-        receiveShadow
         material={ceilingMat}
       >
         <boxGeometry args={[ceilEastW, t, ceilEastD]} />
       </mesh>
 
-      {/* Door threshold trim */}
-      <mesh position={[0, 0.12, ROOM.half - 0.01]} material={trimMat}>
-        <boxGeometry args={[hw * 2 + 0.04, 0.2, 0.08]} />
+      {/* Nearly flush threshold — was reading as a “step” blocking forward motion */}
+      <mesh position={[0, 0.035, ROOM.half + 0.005]} material={trimMat}>
+        <boxGeometry args={[hw * 2 + 0.06, 0.035, 0.05]} />
       </mesh>
     </group>
   )
