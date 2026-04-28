@@ -95,6 +95,7 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
       if (!lookEnabled || e.button !== 0) return
       dragging = true
       meaningfulMove = false
+      lookDragSync.lookDragging = true
       startX = lastX = e.clientX
       startY = lastY = e.clientY
       try {
@@ -113,6 +114,7 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
     const endDrag = (e: PointerEvent) => {
       if (!dragging) return
       dragging = false
+      lookDragSync.lookDragging = false
       if (meaningfulMove) lookDragSync.blockNextExhibitClick = true
       try {
         el.releasePointerCapture(e.pointerId)
@@ -124,6 +126,7 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
 
     const onLostCapture = () => {
       dragging = false
+      lookDragSync.lookDragging = false
       if (meaningfulMove) lookDragSync.blockNextExhibitClick = true
       el.style.cursor = lookEnabled ? 'grab' : 'auto'
     }

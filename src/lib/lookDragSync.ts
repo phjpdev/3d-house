@@ -3,6 +3,8 @@
  * (R3F click can still fire after a small pointer move).
  */
 export const lookDragSync = {
-  /** True after a drag gesture with meaningful pointer movement; cleared after exhibit checks it */
+  /** True after a drag gesture with meaningful movement; cleared after exhibit checks it */
   blockNextExhibitClick: false,
+  /** True while primary pointer is down on the canvas for look-drag (cursor uses grabbing) */
+  lookDragging: false,
 }

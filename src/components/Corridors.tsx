@@ -63,13 +63,9 @@ export function Corridors() {
 
   /* --- South leg (along +Z) --- */
   const zSouthFloor = ROOM.half + sl / 2
-  const zSouthEnd = ROOM.half + sl
   const zLoOpen = zEastMid - zEastHalf - EPS
-  const zHiOpen = Math.min(zEastMid + zEastHalf + EPS, zSouthEnd - 0.02)
   const zEastWall1Mid = ROOM.half + (zLoOpen - ROOM.half) / 2
   const dEastWall1 = Math.max(0.15, zLoOpen - ROOM.half + EPS)
-  const eastUpperDepth = Math.max(0, zSouthEnd - zHiOpen - 0.02)
-  const zEastWall2Mid = zHiOpen + eastUpperDepth / 2
 
   /* Ceilings: extend slightly north under the main ceiling + overlap each other at the bend */
   const zCeilSouthMid = ROOM.half + sl / 2 - 0.04
@@ -107,19 +103,6 @@ export function Corridors() {
       >
         <boxGeometry args={[t, hWall, Math.max(0.12, dEastWall1)]} />
       </mesh>
-
-      {/* East wall — upper segment (only if there is solid past the east opening) */}
-      {eastUpperDepth > 0.09 ? (
-        <mesh
-          name="CorridorSouthWallEastUpper"
-          position={[hw + t / 2, yWall, zEastWall2Mid]}
-          castShadow
-          receiveShadow
-          material={wallMat}
-        >
-          <boxGeometry args={[t, hWall, eastUpperDepth]} />
-        </mesh>
-      ) : null}
 
       {/* End wall — two slabs with overlapping inner edges around the east turn */}
       <mesh

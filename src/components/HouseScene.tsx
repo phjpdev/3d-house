@@ -41,7 +41,12 @@ export function HouseScene({ house, onOpenExhibit, pointerLookEnabled }: Props) 
       )}
 
       {house.exhibits.map((ex) => (
-        <ExhibitMesh key={ex.id} exhibit={ex} onOpen={onOpenExhibit} />
+        <ExhibitMesh
+          key={ex.id}
+          exhibit={ex}
+          onOpen={onOpenExhibit}
+          pointerLookEnabled={pointerLookEnabled}
+        />
       ))}
     </>
   )
