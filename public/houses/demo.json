@@ -1,7 +1,7 @@
 {
   "id": "demo",
   "name": "Demo memory room",
-  "tagline": "Living room plus south and east corridors — wall frames and a desk photo. Replace content via JSON or the owner panel.",
+  "tagline": "Living room plus south and east corridors — frames in the halls, desk photo, and owner JSON.",
   "roomGltfUrl": null,
   "spawn": {
     "position": [0, 0, 2.2],
@@ -31,6 +31,54 @@
       "imageUrl": "https://picsum.photos/seed/memory-b/800/600",
       "title": "The long hallway",
       "caption": "We measured growing children against this frame until the pencil marks climbed out of reach.",
+      "audioUrl": null
+    },
+    {
+      "id": "corridor-south-w",
+      "kind": "wall_frame",
+      "position": [-0.58, 1.42, 4.85],
+      "rotationY": 1.5708,
+      "width": 0.55,
+      "height": 0.42,
+      "imageUrl": "https://picsum.photos/seed/corridor-w1/640/480",
+      "title": "South hall, morning",
+      "caption": "The corridor always smelled of floor wax and winter coats — the coat hooks are gone but the light is the same.",
+      "audioUrl": null
+    },
+    {
+      "id": "corridor-south-w2",
+      "kind": "wall_frame",
+      "position": [-0.58, 1.42, 7.05],
+      "rotationY": 1.5708,
+      "width": 0.52,
+      "height": 0.4,
+      "imageUrl": "https://picsum.photos/seed/corridor-w2/640/480",
+      "title": "Halfway south",
+      "caption": "We paused here every spring to open the transom and let the warm air chase the damp out.",
+      "audioUrl": null
+    },
+    {
+      "id": "corridor-south-e",
+      "kind": "wall_frame",
+      "position": [0.58, 1.4, 5.95],
+      "rotationY": -1.5708,
+      "width": 0.5,
+      "height": 0.38,
+      "imageUrl": "https://picsum.photos/seed/corridor-e1/640/480",
+      "title": "Notice board",
+      "caption": "School trip forms, a dentist reminder, a postcard that never got sent — layers of paper life.",
+      "audioUrl": null
+    },
+    {
+      "id": "corridor-east-outer",
+      "kind": "wall_frame",
+      "position": [3.62, 1.44, 8.15],
+      "rotationY": 3.14159,
+      "width": 0.58,
+      "height": 0.44,
+      "imageUrl": "https://picsum.photos/seed/corridor-east1/640/480",
+      "title": "East wing window wall",
+      "caption": "Afternoon sun crawled along this plaster until it met the door frame and stopped, like it was tired too.",
       "audioUrl": null
     },
     {

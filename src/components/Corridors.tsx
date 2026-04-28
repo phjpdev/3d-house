@@ -104,24 +104,15 @@ export function Corridors() {
         <boxGeometry args={[t, hWall, Math.max(0.12, dEastWall1)]} />
       </mesh>
 
-      {/* End wall — two slabs with overlapping inner edges around the east turn */}
+      {/* Single south end cap — avoids a thin “pillar” slab where two pieces met */}
       <mesh
-        name="CorridorSouthEndLeft"
-        position={[-hw * 0.32 - EPS / 2, yWall, ROOM.half + sl + t / 2]}
+        name="CorridorSouthEnd"
+        position={[0, yWall, ROOM.half + sl + t / 2]}
         castShadow
         receiveShadow
         material={wallMat}
       >
-        <boxGeometry args={[hw * 1.35 + EPS, hWall, t + EPS]} />
-      </mesh>
-      <mesh
-        name="CorridorSouthEndRight"
-        position={[hw * 0.62 + t * 0.5, yWall, ROOM.half + sl + t / 2]}
-        castShadow
-        receiveShadow
-        material={wallMat}
-      >
-        <boxGeometry args={[hw * 0.62 + EPS, hWall, t + EPS]} />
+        <boxGeometry args={[hw * 2 + t * 2 + EPS * 2, hWall, t + EPS]} />
       </mesh>
 
       {/* South ceiling — overlaps main room ceiling edge + east ceiling */}

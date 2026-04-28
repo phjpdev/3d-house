@@ -69,6 +69,7 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
     const el = gl.domElement
 
     let dragging = false
+    let captureActive = false
     let startX = 0
     let startY = 0
     let lastX = 0
@@ -94,20 +95,27 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
     const onPointerDown = (e: PointerEvent) => {
       if (!lookEnabled || e.button !== 0) return
       dragging = true
+      captureActive = false
       meaningfulMove = false
       lookDragSync.lookDragging = true
       startX = lastX = e.clientX
       startY = lastY = e.clientY
-      try {
-        el.setPointerCapture(e.pointerId)
-      } catch {
-        /* ignore */
-      }
       el.style.cursor = 'grabbing'
     }
 
     const onPointerMove = (e: PointerEvent) => {
       if (!lookEnabled || !dragging) return
+      if (!captureActive) {
+        const d = Math.hypot(e.clientX - startX, e.clientY - startY)
+        if (d > DRAG_THRESHOLD_PX) {
+          try {
+            el.setPointerCapture(e.pointerId)
+            captureActive = true
+          } catch {
+            /* ignore */
+          }
+        }
+      }
       applyLook(e.clientX, e.clientY)
     }
 
@@ -116,10 +124,13 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
       dragging = false
       lookDragSync.lookDragging = false
       if (meaningfulMove) lookDragSync.blockNextExhibitClick = true
-      try {
-        el.releasePointerCapture(e.pointerId)
-      } catch {
-        /* ignore */
+      if (captureActive) {
+        try {
+          el.releasePointerCapture(e.pointerId)
+        } catch {
+          /* ignore */
+        }
+        captureActive = false
       }
       el.style.cursor = lookEnabled ? 'grab' : 'auto'
     }
@@ -127,6 +138,7 @@ export function FirstPersonRig({ spawn, lookEnabled }: Props) {
     const onLostCapture = () => {
       dragging = false
       lookDragSync.lookDragging = false
+      captureActive = false
       if (meaningfulMove) lookDragSync.blockNextExhibitClick = true
       el.style.cursor = lookEnabled ? 'grab' : 'auto'
     }
