@@ -30,7 +30,7 @@ type Props = {
   model: LibraryModel | null
   onClose: () => void
   onPlaceInRoom: (libId: string) => void
-  /** Remove this entry from the Build list or delete the file under `public/models/user`. */
+  /** Remove this entry from the Build list or delete the file under `public/models`. */
   onRemoveFromList?: () => void | Promise<void>
 }
 

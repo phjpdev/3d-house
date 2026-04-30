@@ -39,7 +39,8 @@ export function EditHomeSidebar() {
   const setSelectedWallPictureId = useVividHomeStore((s) => s.setSelectedWallPictureId)
   const editTransformMode = useVividHomeStore((s) => s.editTransformMode)
   const setEditTransformMode = useVividHomeStore((s) => s.setEditTransformMode)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const photoFileRef = useRef<HTMLInputElement>(null)
+  const glbFileRef = useRef<HTMLInputElement>(null)
   const [modalModel, setModalModel] = useState<LibraryModel | null>(null)
   const [modalWallPhoto, setModalWallPhoto] = useState<CatalogPhoto | null>(null)
   const [userListError, setUserListError] = useState<string | null>(null)
@@ -47,10 +48,11 @@ export function EditHomeSidebar() {
   const [photoCatalog, setPhotoCatalog] = useState<CatalogPhoto[]>([])
   const [photosError, setPhotosError] = useState<string | null>(null)
   const [photosLoaded, setPhotosLoaded] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [photoUploadError, setPhotoUploadError] = useState<string | null>(null)
+  const [modelUploadError, setModelUploadError] = useState<string | null>(null)
 
   const loadUserModels = useCallback(async () => {
-    const res = await fetch('/api/user-models')
+    const res = await fetch('/api/models')
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = (await res.json()) as UserModelsResponse
     setUserModels(toUserLibraryModels(data))
@@ -70,7 +72,7 @@ export function EditHomeSidebar() {
     loadUserModels()
       .catch((e: unknown) => {
         if (!cancelled)
-          setUserListError(e instanceof Error ? e.message : 'Could not load public/models/user')
+          setUserListError(e instanceof Error ? e.message : 'Could not load public/models')
       })
       .finally(() => {
         if (!cancelled) setUserListLoaded(true)
@@ -102,7 +104,7 @@ export function EditHomeSidebar() {
     if (!m) return
     if (m.id.startsWith('user:')) {
       const filename = m.id.slice('user:'.length)
-      const res = await fetch(`/api/user-models?filename=${encodeURIComponent(filename)}`, {
+      const res = await fetch(`/api/models?filename=${encodeURIComponent(filename)}`, {
         method: 'DELETE',
       })
       if (!res.ok) {
@@ -119,7 +121,7 @@ export function EditHomeSidebar() {
 
   const onWallUpload = async (f: File | null) => {
     if (!f) return
-    setUploadError(null)
+    setPhotoUploadError(null)
     const fd = new FormData()
     fd.append('file', f)
     try {
@@ -128,9 +130,25 @@ export function EditHomeSidebar() {
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
       await loadPhotos()
     } catch (e: unknown) {
-      setUploadError(e instanceof Error ? e.message : 'Upload failed')
+      setPhotoUploadError(e instanceof Error ? e.message : 'Upload failed')
     }
-    if (fileRef.current) fileRef.current.value = ''
+    if (photoFileRef.current) photoFileRef.current.value = ''
+  }
+
+  const onModelUpload = async (f: File | null) => {
+    if (!f) return
+    setModelUploadError(null)
+    const fd = new FormData()
+    fd.append('file', f)
+    try {
+      const res = await fetch('/api/models', { method: 'POST', body: fd })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
+      await loadUserModels()
+    } catch (e: unknown) {
+      setModelUploadError(e instanceof Error ? e.message : 'Upload failed')
+    }
+    if (glbFileRef.current) glbFileRef.current.value = ''
   }
 
   const transformModes: { id: EditTransformMode; label: string }[] = [
@@ -194,21 +212,37 @@ export function EditHomeSidebar() {
           </div>
         ) : null}
 
-        <h2 className="font-serif text-lg text-stone-900">Library</h2>
+        <h2 className="font-serif text-lg text-stone-900">Home library</h2>
         <p className="mt-1 text-xs text-stone-600">
-          Tap an item for a 3D preview. Use Place in room, then click the floor. Select a piece in
-          the scene to move, rotate, or scale.
+          Upload GLBs into your user folder or pick one from Build. Open an item for a 3D preview,
+          use Place in room, then click the floor. Click objects in the scene to move, rotate, or
+          scale them.
         </p>
-        {userListError ? (
-          <p className="mt-2 text-xs text-amber-800">{userListError}</p>
-        ) : null}
 
-        {userModels.length > 0 ? (
-          <div className="mt-4">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-stone-500">
-              public / models / user
-            </h3>
-            <ul className="mt-2 space-y-2">
+        <div className="mt-2">
+          <input
+            ref={glbFileRef}
+            type="file"
+            accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+            className="hidden"
+            onChange={(e) => void onModelUpload(e.target.files?.[0] ?? null)}
+          />
+          <button
+            type="button"
+            onClick={() => glbFileRef.current?.click()}
+            className="mt-3 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 hover:bg-stone-50"
+          >
+            Upload 3D model (.glb / .gltf)
+          </button>
+          {modelUploadError ? (
+            <p className="mt-2 text-xs text-red-700">{modelUploadError}</p>
+          ) : null}
+          {userListError ? (
+            <p className="mt-2 text-xs text-amber-800">{userListError}</p>
+          ) : null}
+
+          {userModels.length > 0 ? (
+            <ul className="mt-3 space-y-2">
               {userModels.map((m) => (
                 <li key={m.id}>
                   <button
@@ -228,10 +262,10 @@ export function EditHomeSidebar() {
                 </li>
               ))}
             </ul>
-          </div>
-        ) : !userListError && userListLoaded && userModels.length === 0 ? (
-          <p className="mt-2 text-xs text-stone-500">No .glb or .gltf files in public/models/user</p>
-        ) : null}
+          ) : !userListError && userListLoaded && userModels.length === 0 ? (
+            <p className="mt-2 text-xs text-stone-500">No models yet — upload a .glb or .gltf above.</p>
+          ) : null}
+        </div>
 
         <h3 className="mt-6 text-xs font-medium uppercase tracking-wide text-stone-500">Build tab</h3>
         <ul className="mt-2 space-y-2">
@@ -261,12 +295,11 @@ export function EditHomeSidebar() {
         <div className="mt-8 border-t border-stone-200 pt-6">
           <h3 className="font-serif text-base text-stone-900">Wall art</h3>
           <p className="mt-1 text-xs text-stone-600">
-            Images live in <span className="font-mono text-[11px]">public/photos</span>. Upload adds a
-            file there; tap a picture for preview, then Place in home. Click a frame in the scene to
+            Upload adds a file there; tap a picture for preview, then Place in home. Click a frame in the scene to
             select it here.
           </p>
           <input
-            ref={fileRef}
+            ref={photoFileRef}
             type="file"
             accept="image/*"
             className="hidden"
@@ -274,12 +307,14 @@ export function EditHomeSidebar() {
           />
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
+            onClick={() => photoFileRef.current?.click()}
             className="mt-3 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 hover:bg-stone-50"
           >
             Add picture to wall
           </button>
-          {uploadError ? <p className="mt-2 text-xs text-red-700">{uploadError}</p> : null}
+          {photoUploadError ? (
+            <p className="mt-2 text-xs text-red-700">{photoUploadError}</p>
+          ) : null}
           {photosError ? (
             <p className="mt-2 text-xs text-amber-800">{photosError}</p>
           ) : null}

@@ -450,7 +450,7 @@ export function BuildTab() {
               {saveBusy ? 'Saving to disk…' : 'Save to My Library'}
             </button>
             <p className="mt-2 text-[11px] text-stone-500">
-              Saves a copy under <code className="rounded bg-stone-100 px-1">public/models/user/</code>{' '}
+              Saves a copy under <code className="rounded bg-stone-100 px-1">public/models/</code>{' '}
               via the dev server (needs a writable filesystem).
             </p>
           </div>

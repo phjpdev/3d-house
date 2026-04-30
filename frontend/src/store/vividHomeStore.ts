@@ -43,7 +43,7 @@ export type WallPicture = {
 type State = {
   tab: AppTab
   library: LibraryModel[]
-  /** Local GLBs under `public/models/user` — not persisted; refreshed when Edit loads */
+  /** Disk catalog GLBs under `public/models` — not persisted; refreshed when Edit loads */
   userModels: LibraryModel[]
   placedFurniture: PlacedFurniture[]
   wallPictures: WallPicture[]
@@ -102,6 +102,11 @@ const defaultFurniture: PlacedFurniture[] = [
     lightIntensity: 28,
   },
 ]
+
+/** Old paths used `public/models/user` — rewrite to `public/models` for one rehydrate. */
+function migrateModelsUserUrl(url: string): string {
+  return url.replace(/^\/models\/user\//, '/models/')
+}
 
 /** Removed from scene layout; filtered out of persisted placements on rehydrate. */
 const STRIPPED_PLACEMENT_IDS = new Set([
@@ -269,11 +274,15 @@ export const useVividHomeStore = create<State>()(
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<Pick<State, 'library' | 'placedFurniture' | 'wallPictures'>>
-        const placed = (p.placedFurniture ?? current.placedFurniture).filter(
-          (item) => !STRIPPED_PLACEMENT_IDS.has(item.id),
-        )
+        const placed = (p.placedFurniture ?? current.placedFurniture)
+          .filter((item) => !STRIPPED_PLACEMENT_IDS.has(item.id))
+          .map((item) => ({
+            ...item,
+            url: migrateModelsUserUrl(item.url),
+          }))
         const nextLib = (p.library ?? current.library).map((m) => ({
           ...m,
+          glbUrl: migrateModelsUserUrl(m.glbUrl),
           thumbnailUrl:
             m.thumbnailUrl?.startsWith('blob:') ? undefined : m.thumbnailUrl,
         }))

@@ -77,10 +77,11 @@ export async function POST(req: NextRequest) {
   const slug = slugFromHint(nameHint)
   const id = randomUUID().slice(0, 8)
   const filename = `${slug}-${id}.glb`
-  const absolutePath = join(process.cwd(), 'public', 'models', 'user', filename)
+  const modelsDir = join(process.cwd(), 'public', 'models')
+  const absolutePath = join(modelsDir, filename)
 
   try {
-    await mkdir(join(process.cwd(), 'public', 'models', 'user'), { recursive: true })
+    await mkdir(modelsDir, { recursive: true })
     await writeFile(absolutePath, buf)
   } catch (e) {
     console.error('save-library-glb write failed', e)
@@ -93,6 +94,6 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const publicUrl = `/models/user/${filename}`
+  const publicUrl = `/models/${filename}`
   return NextResponse.json({ ok: true as const, publicUrl, filename })
 }

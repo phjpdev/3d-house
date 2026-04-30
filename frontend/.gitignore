@@ -40,5 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# GLBs saved from Build tab via /api/save-library-glb (keep folder via user/.gitkeep)
-/public/models/user/*.glb
+# GLBs saved from Build tab / sidebar upload land in public/models (track or ignore as you prefer)
