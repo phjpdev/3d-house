@@ -82,3 +82,22 @@ export function clampEditCameraPosition(pos: THREE.Vector3): void {
     pos.x = THREE.MathUtils.clamp(pos.x, -xHall, xHall)
   }
 }
+
+/** Keeps the orbit pivot inside the same walkable shell as {@link clampEditCameraPosition}. */
+export function clampEditOrbitTarget(target: THREE.Vector3): void {
+  const m = EDIT_CAM_WALL_MARGIN
+  const xRoom = ROOM.half - m
+  const zNorth = -ROOM.half + m
+  const zSouthMax = ROOM.half + CORRIDOR.southLen - m
+  const zCorridorStart = ROOM.half + 0.28
+  const xHall = CORRIDOR.halfW - m
+
+  target.y = THREE.MathUtils.clamp(target.y, 0.55, ROOM.height - 0.22)
+  target.z = THREE.MathUtils.clamp(target.z, zNorth, zSouthMax)
+
+  if (target.z < zCorridorStart) {
+    target.x = THREE.MathUtils.clamp(target.x, -xRoom, xRoom)
+  } else {
+    target.x = THREE.MathUtils.clamp(target.x, -xHall, xHall)
+  }
+}

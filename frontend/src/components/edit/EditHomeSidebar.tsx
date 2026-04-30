@@ -39,10 +39,13 @@ export function EditHomeSidebar() {
   const setSelectedWallPictureId = useVividHomeStore((s) => s.setSelectedWallPictureId)
   const editTransformMode = useVividHomeStore((s) => s.editTransformMode)
   const setEditTransformMode = useVividHomeStore((s) => s.setEditTransformMode)
+  const editStructureZone = useVividHomeStore((s) => s.editStructureZone)
+  const setEditStructureZone = useVividHomeStore((s) => s.setEditStructureZone)
   const photoFileRef = useRef<HTMLInputElement>(null)
   const glbFileRef = useRef<HTMLInputElement>(null)
   const [modalModel, setModalModel] = useState<LibraryModel | null>(null)
   const [modalWallPhoto, setModalWallPhoto] = useState<CatalogPhoto | null>(null)
+  const [assetTab, setAssetTab] = useState<'library' | 'wallArt'>('library')
   const [userListError, setUserListError] = useState<string | null>(null)
   const [userListLoaded, setUserListLoaded] = useState(false)
   const [photoCatalog, setPhotoCatalog] = useState<CatalogPhoto[]>([])
@@ -198,9 +201,66 @@ export function EditHomeSidebar() {
         }}
       />
 
-      <aside className="w-full shrink-0 border-stone-200 bg-stone-50/90 p-4 lg:max-h-full lg:w-80 lg:overflow-y-auto lg:border-r">
+      <aside className="flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-stone-200 bg-stone-50/90 p-4 lg:max-h-full lg:h-full lg:w-80 lg:border-r">
+        <div className="shrink-0 space-y-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">
+            Structure
+          </p>
+          <button
+            type="button"
+            onClick={() => setEditStructureZone('room')}
+            className={[
+              'w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors',
+              editStructureZone === 'room'
+                ? 'border-stone-800 bg-stone-800 text-stone-50'
+                : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-100',
+            ].join(' ')}
+          >
+            Room
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditStructureZone('corridor')}
+            className={[
+              'w-full rounded-lg border px-3 py-2 text-left text-sm font-medium transition-colors',
+              editStructureZone === 'corridor'
+                ? 'border-stone-800 bg-stone-800 text-stone-50'
+                : 'border-stone-300 bg-white text-stone-800 hover:bg-stone-100',
+            ].join(' ')}
+          >
+            Corridor
+          </button>
+        </div>
+
+        <div className="mt-4 flex shrink-0 gap-1 rounded-lg border border-stone-300 bg-stone-200/40 p-1">
+          <button
+            type="button"
+            onClick={() => setAssetTab('library')}
+            className={[
+              'min-h-[2.25rem] flex-1 rounded-md px-2 py-1.5 text-center text-xs font-medium sm:text-sm',
+              assetTab === 'library'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-600 hover:text-stone-900',
+            ].join(' ')}
+          >
+            Home library
+          </button>
+          <button
+            type="button"
+            onClick={() => setAssetTab('wallArt')}
+            className={[
+              'min-h-[2.25rem] flex-1 rounded-md px-2 py-1.5 text-center text-xs font-medium sm:text-sm',
+              assetTab === 'wallArt'
+                ? 'bg-white text-stone-900 shadow-sm'
+                : 'text-stone-600 hover:text-stone-900',
+            ].join(' ')}
+          >
+            Wall art
+          </button>
+        </div>
+
         {libraryPlacementPending ? (
-          <div className="mb-4 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          <div className="mt-3 shrink-0 rounded-lg border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs text-amber-950">
             <p className="font-medium">Click the floor to place your model.</p>
             <button
               type="button"
@@ -212,138 +272,152 @@ export function EditHomeSidebar() {
           </div>
         ) : null}
 
-        <h2 className="font-serif text-lg text-stone-900">Home library</h2>
-        <p className="mt-1 text-xs text-stone-600">
-          Upload GLBs into your user folder or pick one from Build. Open an item for a 3D preview,
-          use Place in room, then click the floor. Click objects in the scene to move, rotate, or
-          scale them.
-        </p>
-
-        <div className="mt-2">
-          <input
-            ref={glbFileRef}
-            type="file"
-            accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
-            className="hidden"
-            onChange={(e) => void onModelUpload(e.target.files?.[0] ?? null)}
-          />
-          <button
-            type="button"
-            onClick={() => glbFileRef.current?.click()}
-            className="mt-3 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 hover:bg-stone-50"
-          >
-            Upload 3D model (.glb / .gltf)
-          </button>
-          {modelUploadError ? (
-            <p className="mt-2 text-xs text-red-700">{modelUploadError}</p>
-          ) : null}
-          {userListError ? (
-            <p className="mt-2 text-xs text-amber-800">{userListError}</p>
-          ) : null}
-
-          {userModels.length > 0 ? (
-            <ul className="mt-3 space-y-2">
-              {userModels.map((m) => (
-                <li key={m.id}>
-                  <button
-                    type="button"
-                    onClick={() => setModalModel(m)}
-                    className="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-2 text-left text-sm text-stone-800 hover:bg-stone-50"
-                  >
-                    <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
-                      <LibraryThumbnail
-                        thumbnailUrl={m.thumbnailUrl}
-                        name={m.name}
-                        className="h-full w-full object-cover text-lg"
-                      />
-                    </span>
-                    <span className="min-w-0 flex-1 leading-snug">{m.name}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : !userListError && userListLoaded && userModels.length === 0 ? (
-            <p className="mt-2 text-xs text-stone-500">No models yet — upload a .glb or .gltf above.</p>
-          ) : null}
-        </div>
-
-        <h3 className="mt-6 text-xs font-medium uppercase tracking-wide text-stone-500">Build tab</h3>
-        <ul className="mt-2 space-y-2">
-          {library.map((m) => (
-            <li key={m.id}>
-              <button
-                type="button"
-                onClick={() => setModalModel(m)}
-                className="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-2 text-left text-sm text-stone-800 hover:bg-stone-50"
-              >
-                <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
-                  <LibraryThumbnail
-                    thumbnailUrl={m.thumbnailUrl}
-                    name={m.name}
-                    className="h-full w-full object-cover text-lg"
-                  />
+        <div className="mt-3 min-h-0 flex-1 overflow-y-auto lg:min-h-[100px]">
+          {assetTab === 'library' ? (
+            <>
+              <p className="text-xs text-stone-600">
+                Models in <span className="font-mono text-[11px]">public/models</span>. Preview an
+                item, Place in room, then click the floor.{' '}
+                <span className="text-stone-500">
+                  Corridor: use Structure → Corridor. Right-drag pans along the hall.
                 </span>
-                <span className="min-w-0 flex-1 leading-snug">{m.name}</span>
-              </button>
-            </li>
-          ))}
-          {library.length === 0 ? (
-            <li className="text-xs text-stone-500">No generated models — use Build to add one.</li>
-          ) : null}
-        </ul>
+              </p>
 
-        <div className="mt-8 border-t border-stone-200 pt-6">
-          <h3 className="font-serif text-base text-stone-900">Wall art</h3>
-          <p className="mt-1 text-xs text-stone-600">
-            Upload adds a file there; tap a picture for preview, then Place in home. Click a frame in the scene to
-            select it here.
-          </p>
-          <input
-            ref={photoFileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => void onWallUpload(e.target.files?.[0] ?? null)}
-          />
-          <button
-            type="button"
-            onClick={() => photoFileRef.current?.click()}
-            className="mt-3 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 hover:bg-stone-50"
-          >
-            Add picture to wall
-          </button>
-          {photoUploadError ? (
-            <p className="mt-2 text-xs text-red-700">{photoUploadError}</p>
-          ) : null}
-          {photosError ? (
-            <p className="mt-2 text-xs text-amber-800">{photosError}</p>
-          ) : null}
-          <ul className="mt-3 space-y-2">
-            {photoCatalog.map((w) => (
-              <li key={w.filename}>
+              <div className="mt-3">
+                <input
+                  ref={glbFileRef}
+                  type="file"
+                  accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+                  className="hidden"
+                  onChange={(e) => void onModelUpload(e.target.files?.[0] ?? null)}
+                />
                 <button
                   type="button"
-                  onClick={() => setModalWallPhoto(w)}
-                  className="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-2 text-left text-sm text-stone-800 hover:bg-stone-50"
+                  onClick={() => glbFileRef.current?.click()}
+                  className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 hover:bg-stone-50"
                 >
-                  <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
-                    <LibraryThumbnail
-                      thumbnailUrl={w.url}
-                      name={w.name}
-                      className="h-full w-full object-cover text-lg"
-                    />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate leading-snug">{w.name}</span>
+                  Upload 3D model (.glb / .gltf)
                 </button>
-              </li>
-            ))}
-          </ul>
-          {!photosError && photosLoaded && photoCatalog.length === 0 ? (
-            <p className="mt-2 text-xs text-stone-500">No images in public/photos yet — upload one above.</p>
-          ) : null}
+                {modelUploadError ? (
+                  <p className="mt-2 text-xs text-red-700">{modelUploadError}</p>
+                ) : null}
+                {userListError ? (
+                  <p className="mt-2 text-xs text-amber-800">{userListError}</p>
+                ) : null}
+
+                {userModels.length > 0 ? (
+                  <ul className="mt-3 space-y-2">
+                    {userModels.map((m) => (
+                      <li key={m.id}>
+                        <button
+                          type="button"
+                          onClick={() => setModalModel(m)}
+                          className="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-2 text-left text-sm text-stone-800 hover:bg-stone-50"
+                        >
+                          <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                            <LibraryThumbnail
+                              thumbnailUrl={m.thumbnailUrl}
+                              name={m.name}
+                              className="h-full w-full object-cover text-lg"
+                            />
+                          </span>
+                          <span className="min-w-0 flex-1 leading-snug">{m.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : !userListError && userListLoaded && userModels.length === 0 ? (
+                  <p className="mt-2 text-xs text-stone-500">
+                    No models yet — upload a .glb or .gltf above.
+                  </p>
+                ) : null}
+              </div>
+
+              <h3 className="mt-6 text-xs font-medium uppercase tracking-wide text-stone-500">
+                Build tab
+              </h3>
+              <ul className="mt-2 space-y-2">
+                {library.map((m) => (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => setModalModel(m)}
+                      className="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-2 text-left text-sm text-stone-800 hover:bg-stone-50"
+                    >
+                      <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                        <LibraryThumbnail
+                          thumbnailUrl={m.thumbnailUrl}
+                          name={m.name}
+                          className="h-full w-full object-cover text-lg"
+                        />
+                      </span>
+                      <span className="min-w-0 flex-1 leading-snug">{m.name}</span>
+                    </button>
+                  </li>
+                ))}
+                {library.length === 0 ? (
+                  <li className="text-xs text-stone-500">
+                    No generated models — use Build to add one.
+                  </li>
+                ) : null}
+              </ul>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-stone-600">
+                Images in <span className="font-mono text-[11px]">public/photos</span>. Upload, open a
+                thumbnail, Place in home. Click a frame in the scene to select — works from either tab.
+              </p>
+              <input
+                ref={photoFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => void onWallUpload(e.target.files?.[0] ?? null)}
+              />
+              <button
+                type="button"
+                onClick={() => photoFileRef.current?.click()}
+                className="mt-3 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 hover:bg-stone-50"
+              >
+                Add picture to wall
+              </button>
+              {photoUploadError ? (
+                <p className="mt-2 text-xs text-red-700">{photoUploadError}</p>
+              ) : null}
+              {photosError ? (
+                <p className="mt-2 text-xs text-amber-800">{photosError}</p>
+              ) : null}
+              <ul className="mt-3 space-y-2">
+                {photoCatalog.map((w) => (
+                  <li key={w.filename}>
+                    <button
+                      type="button"
+                      onClick={() => setModalWallPhoto(w)}
+                      className="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-2 text-left text-sm text-stone-800 hover:bg-stone-50"
+                    >
+                      <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                        <LibraryThumbnail
+                          thumbnailUrl={w.url}
+                          name={w.name}
+                          className="h-full w-full object-cover text-lg"
+                        />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate leading-snug">{w.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {!photosError && photosLoaded && photoCatalog.length === 0 ? (
+                <p className="mt-2 text-xs text-stone-500">
+                  No images in public/photos yet — upload one above.
+                </p>
+              ) : null}
+            </>
+          )}
         </div>
 
-        <div className="mt-8 border-t border-stone-200 pt-6">
+        <div className="mt-4 shrink-0 border-t border-stone-200 pt-4">
           <h3 className="font-serif text-base text-stone-900">Selection</h3>
           <p className="mt-1 text-xs text-stone-600">
             Selected:{' '}

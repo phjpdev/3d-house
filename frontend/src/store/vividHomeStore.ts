@@ -17,6 +17,7 @@ export type LibraryModel = {
 }
 
 import type { FurnitureMount } from '@/types/house'
+import type { EditStructureZone } from '@/lib/editOrbitPresets'
 
 export type PlacedFurniture = {
   id: string
@@ -55,6 +56,10 @@ type State = {
   editTransformMode: EditTransformMode
   /** Edit tab: next floor click places this library model */
   libraryPlacementPending: string | null
+
+  /** Edit tab: orbit focus — main room vs south corridor */
+  editStructureZone: EditStructureZone
+  setEditStructureZone: (z: EditStructureZone) => void
 
   setTab: (t: AppTab) => void
   addLibraryModel: (m: Omit<LibraryModel, 'id' | 'createdAt'> & { id?: string }) => void
@@ -129,6 +134,7 @@ export const useVividHomeStore = create<State>()(
       visitUseOrbit: false,
       editTransformMode: 'translate',
       libraryPlacementPending: null,
+      editStructureZone: 'room' as EditStructureZone,
 
       setTab: (tab) => set({ tab }),
       addLibraryModel: (m) =>
@@ -239,6 +245,7 @@ export const useVividHomeStore = create<State>()(
         }),
       setVisitUseOrbit: (visitUseOrbit) => set({ visitUseOrbit }),
       setEditTransformMode: (editTransformMode) => set({ editTransformMode }),
+      setEditStructureZone: (editStructureZone) => set({ editStructureZone }),
       setLibraryPlacementPending: (libraryPlacementPending) => set({ libraryPlacementPending }),
       cancelLibraryPlacement: () => set({ libraryPlacementPending: null }),
       placeLibraryAt: (libId, position) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   ContactShadows,
   Environment,
@@ -23,7 +23,9 @@ import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
 import { loadMeshyGlbViaProxy } from '@/lib/meshyGlbProxyCache'
 import { useVividHomeStore } from '@/store/vividHomeStore'
 import { useFrame, useThree } from '@react-three/fiber'
-import { clampEditCameraPosition, inWalkable, resolveWalkPosition } from '@/lib/houseLayout'
+import { clampEditCameraPosition, clampEditOrbitTarget, inWalkable, resolveWalkPosition } from '@/lib/houseLayout'
+import { applyEditStructurePreset } from '@/lib/editOrbitPresets'
+import type { EditStructureZone } from '@/lib/editOrbitPresets'
 import { VisitWalkRig } from '@/components/canvas/VisitWalkRig'
 import { RealisticEffects } from '@/components/canvas/RealisticEffects'
 import type { PlacedFurniture, WallPicture } from '@/store/vividHomeStore'
@@ -154,11 +156,48 @@ function FloorPlacementHandler({
   return null
 }
 
-/** Run after OrbitControls so drag/zoom cannot leave the interior (walls are single-sided). */
-function EditCameraInteriorClamp({ active }: { active: boolean }) {
+/** When Room / Corridor is chosen in the sidebar, snap edit orbit to that volume. */
+function EditOrbitStructureSync({
+  zone,
+  orbitRef,
+  enabled,
+}: {
+  zone: EditStructureZone
+  orbitRef: RefObject<OrbitControlsImpl | null>
+  enabled: boolean
+}) {
+  const camera = useThree((s) => s.camera as THREE.PerspectiveCamera)
+
+  useLayoutEffect(() => {
+    if (!enabled) return
+    const run = () => {
+      const oc = orbitRef.current
+      if (!oc) return false
+      applyEditStructurePreset(zone, camera, oc)
+      return true
+    }
+    if (run()) return
+    const id = requestAnimationFrame(() => run())
+    return () => cancelAnimationFrame(id)
+  }, [zone, enabled, camera, orbitRef])
+
+  return null
+}
+
+/** Run after OrbitControls: keep camera + orbit target inside the shell (walls are single-sided). */
+function EditCameraInteriorClamp({
+  active,
+  orbitRef,
+}: {
+  active: boolean
+  orbitRef: RefObject<OrbitControlsImpl | null>
+}) {
   const camera = useThree((s) => s.camera)
   useFrame(() => {
     if (!active) return
+    const oc = orbitRef.current
+    if (oc?.target) clampEditOrbitTarget(oc.target)
+    oc?.update()
     clampEditCameraPosition(camera.position)
   }, 1)
   return null
@@ -177,6 +216,7 @@ export function SceneContents({ mode }: Props) {
   const visitOrbit = useVividHomeStore((s) => s.visitUseOrbit)
   const editTransformMode = useVividHomeStore((s) => s.editTransformMode)
   const libraryPlacementPending = useVividHomeStore((s) => s.libraryPlacementPending)
+  const editStructureZone = useVividHomeStore((s) => s.editStructureZone)
   const placeLibraryAt = useVividHomeStore((s) => s.placeLibraryAt)
   const cancelLibraryPlacement = useVividHomeStore((s) => s.cancelLibraryPlacement)
 
@@ -391,12 +431,13 @@ export function SceneContents({ mode }: Props) {
 
       {mode === 'edit' ? (
         <>
-          <EditCameraInteriorClamp active />
+          <EditOrbitStructureSync zone={editStructureZone} orbitRef={editOrbitRef} enabled />
+          <EditCameraInteriorClamp active orbitRef={editOrbitRef} />
           <OrbitControls
             ref={editOrbitRef}
             makeDefault
             enableDamping
-            enablePan={false}
+            enablePan
             dampingFactor={0.14}
             rotateSpeed={1.45}
             zoomSpeed={1.2}
