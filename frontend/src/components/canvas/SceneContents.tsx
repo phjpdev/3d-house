@@ -24,8 +24,6 @@ import { loadMeshyGlbViaProxy } from '@/lib/meshyGlbProxyCache'
 import { useVividHomeStore } from '@/store/vividHomeStore'
 import { useFrame, useThree } from '@react-three/fiber'
 import {
-  CORRIDOR_EDIT_MIN_ORBIT_DISTANCE,
-  ROOM,
   clampEditCameraPosition,
   clampEditOrbitTarget,
   inWalkable,
@@ -41,6 +39,24 @@ const HDRI =
   'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/brown_photostudio_06_1k.hdr'
 
 const INTERIOR_BG = '#ddd6cc'
+
+/**
+ * Coohom-style 3D navigation (see Coohom help “How to Use 2D/3D View?”):
+ * left drag — rotate, right drag — pan, scroll wheel — zoom.
+ */
+const INTERIOR_ORBIT_MOUSE_BUTTONS = {
+  LEFT: THREE.MOUSE.ROTATE,
+  MIDDLE: THREE.MOUSE.DOLLY,
+  RIGHT: THREE.MOUSE.PAN,
+} as const
+
+/** Standing-height orbit: free yaw; pitch bounded so you don’t flip under furniture. */
+const INTERIOR_ORBIT_MIN_POLAR = 0.28
+const INTERIOR_ORBIT_MAX_POLAR = Math.PI / 2 - 0.035
+/** Minimum camera–pivot radius for orbit + wheel / MMB dolly zoom. */
+const INTERIOR_ORBIT_MIN_DISTANCE = 1.08
+const INTERIOR_ORBIT_MAX_DISTANCE_EDIT = 220
+const INTERIOR_ORBIT_MAX_DISTANCE_VISIT = 240
 
 type Props = {
   mode: 'edit' | 'visit'
@@ -191,8 +207,30 @@ function EditOrbitStructureSync({
   return null
 }
 
-/** Run after OrbitControls: keep camera + orbit target inside the shell (walls are single-sided). */
-function EditCameraInteriorClamp({
+/** Distance / polar caps for orbit (positional shell handled by {@link InteriorShellClamp}). */
+function InteriorOrbitLimits({
+  active,
+  orbitRef,
+  maxDistance,
+}: {
+  active: boolean
+  orbitRef: RefObject<OrbitControlsImpl | null>
+  maxDistance: number
+}) {
+  useFrame(() => {
+    if (!active) return
+    const oc = orbitRef.current
+    if (!oc) return
+    oc.minDistance = INTERIOR_ORBIT_MIN_DISTANCE
+    oc.maxDistance = maxDistance
+    oc.minPolarAngle = INTERIOR_ORBIT_MIN_POLAR
+    oc.maxPolarAngle = INTERIOR_ORBIT_MAX_POLAR
+  }, 1)
+  return null
+}
+
+/** Every frame: keep pivot + camera inside the procedural shell so rotation never drifts into void. */
+function InteriorShellClamp({
   active,
   orbitRef,
 }: {
@@ -204,18 +242,10 @@ function EditCameraInteriorClamp({
     if (!active) return
     const oc = orbitRef.current
     if (!oc?.target) return
-
-    const zCorridorStart = ROOM.half + 0.28
-    const inSouthHall = oc.target.z >= zCorridorStart
-    /** Narrow hall: keep closest zoom inside inner wall planes (see CORRIDOR_EDIT_MIN_ORBIT_DISTANCE). */
-    oc.minDistance = inSouthHall ? CORRIDOR_EDIT_MIN_ORBIT_DISTANCE : 1.4
-    oc.maxDistance = inSouthHall ? 9 : 12
-    oc.minPolarAngle = inSouthHall ? 0.22 : 0.38
-
     clampEditOrbitTarget(oc.target)
     oc.update()
     clampEditCameraPosition(camera.position)
-  }, 1)
+  }, 2)
   return null
 }
 
@@ -448,19 +478,22 @@ export function SceneContents({ mode }: Props) {
       {mode === 'edit' ? (
         <>
           <EditOrbitStructureSync zone={editStructureZone} orbitRef={editOrbitRef} enabled />
-          <EditCameraInteriorClamp active orbitRef={editOrbitRef} />
+          <InteriorOrbitLimits active orbitRef={editOrbitRef} maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_EDIT} />
+          <InteriorShellClamp active orbitRef={editOrbitRef} />
           <OrbitControls
             ref={editOrbitRef}
             makeDefault
-            enableDamping
+            enableDamping={false}
             enablePan
-            dampingFactor={0.14}
-            rotateSpeed={1.45}
+            screenSpacePanning
+            mouseButtons={INTERIOR_ORBIT_MOUSE_BUTTONS}
+            panSpeed={0.65}
+            rotateSpeed={0.52}
             zoomSpeed={1.2}
-            minDistance={1.4}
-            maxDistance={12}
-            maxPolarAngle={Math.PI / 2 - 0.06}
-            minPolarAngle={0.38}
+            minDistance={INTERIOR_ORBIT_MIN_DISTANCE}
+            maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_EDIT}
+            maxPolarAngle={INTERIOR_ORBIT_MAX_POLAR}
+            minPolarAngle={INTERIOR_ORBIT_MIN_POLAR}
             target={[0, 1.15, -1.2]}
           />
         </>
@@ -471,19 +504,30 @@ export function SceneContents({ mode }: Props) {
       ) : null}
 
       {mode === 'visit' && visitOrbit ? (
-        <OrbitControls
-          ref={visitOrbitRef}
-          makeDefault
-          enableDamping
-          dampingFactor={0.14}
-          rotateSpeed={1.45}
-          zoomSpeed={1.2}
-          minDistance={1.4}
-          maxDistance={16}
-          maxPolarAngle={Math.PI / 2 - 0.06}
-          minPolarAngle={0.35}
-          target={[0, 1.15, -1.2]}
-        />
+        <>
+          <InteriorOrbitLimits
+            active
+            orbitRef={visitOrbitRef}
+            maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_VISIT}
+          />
+          <InteriorShellClamp active orbitRef={visitOrbitRef} />
+          <OrbitControls
+            ref={visitOrbitRef}
+            makeDefault
+            enableDamping={false}
+            enablePan
+            screenSpacePanning
+            mouseButtons={INTERIOR_ORBIT_MOUSE_BUTTONS}
+            panSpeed={0.65}
+            rotateSpeed={0.52}
+            zoomSpeed={1.2}
+            minDistance={INTERIOR_ORBIT_MIN_DISTANCE}
+            maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_VISIT}
+            maxPolarAngle={INTERIOR_ORBIT_MAX_POLAR}
+            minPolarAngle={INTERIOR_ORBIT_MIN_POLAR}
+            target={[0, 1.15, -1.2]}
+          />
+        </>
       ) : null}
 
       <RealisticEffects />

@@ -9,13 +9,13 @@ export const ROOM = {
 
 /** South corridor: straight hall (no L-turn) */
 export const CORRIDOR = {
-  halfW: 0.68,
+  halfW: 1.5,
   southLen: 5.45,
 } as const
 
 /**
- * Inner corridor half-width is `halfW` (between inner wall faces). Orbit `minDistance` must stay
- * below that or the camera sphere intersects the side walls when the pivot is on the centerline.
+ * Used only for tight corridors (`halfW` small): orbit `minDistance` must stay below inner half-width
+ * when the pivot is on the centerline, or the camera intersects side walls.
  */
 export const CORRIDOR_EDIT_MIN_ORBIT_DISTANCE = Math.max(0.36, CORRIDOR.halfW - 0.22)
 
@@ -65,53 +65,44 @@ export function resolveWalkPosition(
   return [ox, oz]
 }
 
-/** Clearance from inner wall planes so the edit camera stays inside the shell (avoids back-face culled walls). */
+/** Clearance from inner wall planes so the camera stays inside the closed shell (no void / “outside”). */
 const EDIT_CAM_WALL_MARGIN = 0.32
 
+const Z_CORRIDOR_BLEND = ROOM.half + 0.28
+
 /**
- * Keeps the orbit camera inside the living room + south corridor. Mutates `pos` (world space).
+ * Keeps the orbit camera inside the living room + south corridor volume. Mutates `pos` (world space).
+ * Corridor uses a tighter X bound than the main room so you never slide beside the hall mesh.
  */
 export function clampEditCameraPosition(pos: THREE.Vector3): void {
   const m = EDIT_CAM_WALL_MARGIN
   const xRoom = ROOM.half - m
+  const xCorridor = Math.min(xRoom, CORRIDOR.halfW - m)
   const zNorth = -ROOM.half + m
   const zSouthMax = ROOM.half + CORRIDOR.southLen - m
-  const zCorridorStart = ROOM.half + 0.28
 
-  pos.y = THREE.MathUtils.clamp(pos.y, 0.34, ROOM.height - 0.12)
+  pos.y = THREE.MathUtils.clamp(pos.y, 0.08, ROOM.height - 0.02)
   pos.z = THREE.MathUtils.clamp(pos.z, zNorth, zSouthMax)
-
-  if (pos.z < zCorridorStart) {
+  if (pos.z < Z_CORRIDOR_BLEND) {
     pos.x = THREE.MathUtils.clamp(pos.x, -xRoom, xRoom)
   } else {
-    /**
-     * Hall inner half-width is `CORRIDOR.halfW`, but orbit needs lateral swing like room mode (~1.4 m).
-     * The old tight ±(halfW - margin) clamp fought OrbitControls (“mouse stuck”).
-     * Allow a wider cross-track bound while staying inside the global shell (cap at room width).
-     */
-    const xCorridorOrbitHalf = Math.min(
-      xRoom,
-      CORRIDOR.halfW + ROOM.wallT + 0.82,
-    )
-    pos.x = THREE.MathUtils.clamp(pos.x, -xCorridorOrbitHalf, xCorridorOrbitHalf)
+    pos.x = THREE.MathUtils.clamp(pos.x, -xCorridor, xCorridor)
   }
 }
 
-/** Keeps the orbit pivot inside the same walkable shell as {@link clampEditCameraPosition}. */
+/** Keeps the orbit pivot inside the same shell as {@link clampEditCameraPosition}. */
 export function clampEditOrbitTarget(target: THREE.Vector3): void {
   const m = EDIT_CAM_WALL_MARGIN
   const xRoom = ROOM.half - m
+  const xCorridor = Math.min(xRoom, CORRIDOR.halfW - m)
   const zNorth = -ROOM.half + m
   const zSouthMax = ROOM.half + CORRIDOR.southLen - m
-  const zCorridorStart = ROOM.half + 0.28
-  const xHall = CORRIDOR.halfW - m
 
-  target.y = THREE.MathUtils.clamp(target.y, 0.55, ROOM.height - 0.22)
+  target.y = THREE.MathUtils.clamp(target.y, 0.28, ROOM.height - 0.08)
   target.z = THREE.MathUtils.clamp(target.z, zNorth, zSouthMax)
-
-  if (target.z < zCorridorStart) {
+  if (target.z < Z_CORRIDOR_BLEND) {
     target.x = THREE.MathUtils.clamp(target.x, -xRoom, xRoom)
   } else {
-    target.x = THREE.MathUtils.clamp(target.x, -xHall, xHall)
+    target.x = THREE.MathUtils.clamp(target.x, -xCorridor, xCorridor)
   }
 }
