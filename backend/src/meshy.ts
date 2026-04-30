@@ -37,6 +37,16 @@ function authHeader(key: string) {
   return { Authorization: `Bearer ${key}` }
 }
 
+/** Meshy create endpoints return `{ "result": "<taskId>" }`; some clients use `task_id`. */
+function parseCreateTaskId(data: unknown): string {
+  if (data && typeof data === 'object') {
+    const o = data as Record<string, unknown>
+    if (typeof o.result === 'string' && o.result.length > 0) return o.result
+    if (typeof o.task_id === 'string' && o.task_id.length > 0) return o.task_id
+  }
+  throw new Error('Meshy: task id missing in create response')
+}
+
 export async function createTextPreview(
   apiKey: string,
   prompt: string,
@@ -56,7 +66,8 @@ export async function createTextPreview(
     const t = await r.text()
     throw new Error(`Meshy preview: ${r.status} ${t}`)
   }
-  return r.json() as Promise<CreateResult>
+  const data = await r.json()
+  return { result: parseCreateTaskId(data) }
 }
 
 export async function createTextRefine(
@@ -78,7 +89,8 @@ export async function createTextRefine(
     const t = await r.text()
     throw new Error(`Meshy refine: ${r.status} ${t}`)
   }
-  return r.json() as Promise<CreateResult>
+  const data = await r.json()
+  return { result: parseCreateTaskId(data) }
 }
 
 export async function getTextTask(
@@ -115,7 +127,8 @@ export async function createImageTo3D(
     const t = await r.text()
     throw new Error(`Meshy image-to-3d: ${r.status} ${t}`)
   }
-  return r.json() as Promise<CreateResult>
+  const data = await r.json()
+  return { result: parseCreateTaskId(data) }
 }
 
 export async function getImageTask(

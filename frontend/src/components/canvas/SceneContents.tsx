@@ -8,6 +8,8 @@ import {
   TransformControls,
   useGLTF,
 } from '@react-three/drei'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import type { TransformControls as TransformControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
 import type { HouseConfig } from '@/types/house'
 import demoHouse from '@/data/demo-house.json'
@@ -17,6 +19,7 @@ import { ExhibitMesh } from '@/components/interior/ExhibitMesh'
 import { FurnitureMesh } from '@/components/interior/FurnitureMesh'
 import { placedToFurniture } from '@/lib/toFurnitureConfig'
 import { mergeWallPictures } from '@/lib/mergeExhibits'
+import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
 import { useVividHomeStore } from '@/store/vividHomeStore'
 import { VisitWalkRig } from '@/components/canvas/VisitWalkRig'
 import { RealisticEffects } from '@/components/canvas/RealisticEffects'
@@ -58,6 +61,9 @@ export function SceneContents({ mode }: Props) {
 
   const objectRefs = useRef<Map<string, THREE.Group>>(new Map())
   const [transformTarget, setTransformTarget] = useState<THREE.Group | null>(null)
+  const editOrbitRef = useRef<OrbitControlsImpl | null>(null)
+  const visitOrbitRef = useRef<OrbitControlsImpl | null>(null)
+  const transformControlsRef = useRef<TransformControlsImpl | null>(null)
 
   const furnitureConfigs = useMemo(() => placed.map(placedToFurniture), [placed])
   const exhibits = useMemo(
@@ -67,7 +73,9 @@ export function SceneContents({ mode }: Props) {
 
   useEffect(() => {
     for (const u of new Set(placed.map((p) => p.url))) {
-      useGLTF.preload(u)
+      if (!isMeshySignedAssetUrl(u)) {
+        useGLTF.preload(u)
+      }
     }
   }, [placed])
 
@@ -81,6 +89,34 @@ export function SceneContents({ mode }: Props) {
   }, [selectedId, placed, mode])
 
   const selectedItem = placed.find((p) => p.id === selectedId)
+
+  /** Orbit must stay enabled whenever nothing is selected, or after transform unmounts mid-drag. */
+  useEffect(() => {
+    if (mode !== 'edit') return
+    if (!selectedId && editOrbitRef.current) {
+      editOrbitRef.current.enabled = true
+    }
+  }, [mode, selectedId])
+
+  /** Keep orbit tied to the same ref drei uses for `makeDefault` (avoids stuck `enabled: false`). */
+  useEffect(() => {
+    if (mode !== 'edit') return
+    const tc = transformControlsRef.current
+    if (!tc) return
+    const tcEvents = tc as unknown as {
+      addEventListener(type: 'dragging-changed', fn: (e: THREE.Event & { value?: boolean }) => void): void
+      removeEventListener(type: 'dragging-changed', fn: (e: THREE.Event & { value?: boolean }) => void): void
+    }
+    const onDraggingChanged = (e: THREE.Event & { value?: boolean }) => {
+      const orbit = editOrbitRef.current
+      if (!orbit || typeof e.value !== 'boolean') return
+      orbit.enabled = !e.value
+    }
+    tcEvents.addEventListener('dragging-changed', onDraggingChanged)
+    return () => {
+      tcEvents.removeEventListener('dragging-changed', onDraggingChanged)
+    }
+  }, [mode, selectedId, transformTarget])
 
   return (
     <>
@@ -140,6 +176,7 @@ export function SceneContents({ mode }: Props) {
 
       {mode === 'edit' && selectedItem && transformTarget ? (
         <TransformControls
+          ref={transformControlsRef}
           key={selectedId ?? 'none'}
           object={transformTarget}
           mode="translate"
@@ -152,9 +189,12 @@ export function SceneContents({ mode }: Props) {
 
       {mode === 'edit' ? (
         <OrbitControls
+          ref={editOrbitRef}
           makeDefault
           enableDamping
-          dampingFactor={0.085}
+          dampingFactor={0.055}
+          rotateSpeed={1.22}
+          zoomSpeed={1.08}
           minDistance={1.4}
           maxDistance={16}
           maxPolarAngle={Math.PI / 2 - 0.06}
@@ -169,9 +209,12 @@ export function SceneContents({ mode }: Props) {
 
       {mode === 'visit' && visitOrbit ? (
         <OrbitControls
+          ref={visitOrbitRef}
           makeDefault
           enableDamping
-          dampingFactor={0.085}
+          dampingFactor={0.055}
+          rotateSpeed={1.22}
+          zoomSpeed={1.08}
           minDistance={1.4}
           maxDistance={16}
           maxPolarAngle={Math.PI / 2 - 0.06}

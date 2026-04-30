@@ -2,6 +2,7 @@ import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import type { FurnitureConfig } from '@/types/house'
+import { useMeshyGlbBlobUrl } from '@/hooks/useMeshyGlbBlobUrl'
 import { ROOM } from '@/lib/houseLayout'
 
 /** World Y of ceiling slab underside (meters). */
@@ -97,11 +98,14 @@ function alignCloneToCeilingUnder(root: THREE.Object3D, gap = 0.02) {
   }
 }
 
-export const FurnitureMesh = forwardRef<THREE.Group, Props>(function FurnitureMesh(
-  { item },
-  ref,
-) {
-  const { scene } = useGLTF(item.url)
+function FurnitureMeshBody({
+  item,
+  gltfUrl,
+}: {
+  item: FurnitureConfig
+  gltfUrl: string
+}) {
+  const { scene } = useGLTF(gltfUrl)
   const mount = item.mount ?? 'floor'
   const scaledRef = useRef<THREE.Group>(null)
   const [emitterLocals, setEmitterLocals] = useState<Array<[number, number, number]> | null>(null)
@@ -128,10 +132,6 @@ export const FurnitureMesh = forwardRef<THREE.Group, Props>(function FurnitureMe
   }, [scene, mount])
 
   const s = item.scale ?? 1
-  const rx = item.rotationX ?? 0
-  const ry = item.rotationY ?? 0
-
-  const worldY = mount === 'ceiling' ? CEILING_UNDER : item.position[1]
   const totalIntensity = item.lightIntensity ?? (mount === 'ceiling' ? 27 : 0)
 
   useLayoutEffect(() => {
@@ -163,22 +163,37 @@ export const FurnitureMesh = forwardRef<THREE.Group, Props>(function FurnitureMe
     emitterLocals && emitterLocals.length > 0 ? totalIntensity / emitterLocals.length : totalIntensity
 
   return (
+    <group ref={scaledRef} scale={[s, s, s]}>
+      <primitive object={clone} />
+      {mount === 'ceiling' && totalIntensity > 0 && emitterLocals
+        ? emitterLocals.map((pos, i) => (
+            <pointLight
+              key={i}
+              position={pos}
+              intensity={perBulb}
+              distance={11}
+              decay={2}
+              color="#fff2e0"
+            />
+          ))
+        : null}
+    </group>
+  )
+}
+
+export const FurnitureMesh = forwardRef<THREE.Group, Props>(function FurnitureMesh(
+  { item },
+  ref,
+) {
+  const { loadUrl } = useMeshyGlbBlobUrl(item.url)
+  const mount = item.mount ?? 'floor'
+  const rx = item.rotationX ?? 0
+  const ry = item.rotationY ?? 0
+  const worldY = mount === 'ceiling' ? CEILING_UNDER : item.position[1]
+
+  return (
     <group ref={ref} position={[item.position[0], worldY, item.position[2]]} rotation={[rx, ry, 0]}>
-      <group ref={scaledRef} scale={[s, s, s]}>
-        <primitive object={clone} />
-        {mount === 'ceiling' && totalIntensity > 0 && emitterLocals
-          ? emitterLocals.map((pos, i) => (
-              <pointLight
-                key={i}
-                position={pos}
-                intensity={perBulb}
-                distance={11}
-                decay={2}
-                color="#fff2e0"
-              />
-            ))
-          : null}
-      </group>
+      {loadUrl ? <FurnitureMeshBody key={loadUrl} item={item} gltfUrl={loadUrl} /> : null}
     </group>
   )
 })

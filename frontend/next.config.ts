@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   transpilePackages: ['@vividhome/backend'],
   experimental: {
     serverActions: {

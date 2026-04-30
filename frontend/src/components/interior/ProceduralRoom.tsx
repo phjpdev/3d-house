@@ -55,7 +55,8 @@ export function ProceduralRoom({ materials, showBuiltInDesk }: Props) {
   return (
     <group name="ProceduralRoom">
       {/* Exterior read — grass + simplified silhouettes (cheap depth cue beyond glass). */}
-      <group position={[0, 0, gardenZ]}>
+      {/* Slightly below y=0 so the huge garden plane does not Z-fight with the interior floor slab top. */}
+      <group position={[0, -0.06, gardenZ]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow name="GardenGround">
           <planeGeometry args={[48, 36]} />
           <meshStandardMaterial color="#33553d" roughness={0.94} metalness={0} envMapIntensity={0.28} />
