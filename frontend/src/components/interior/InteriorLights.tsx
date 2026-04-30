@@ -70,8 +70,8 @@ function LivingFillSpots() {
         castShadow
         shadow-bias={-0.0001}
         shadow-normalBias={0.03}
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
       >
         <object3D attach="target" position={[-2.05, 0.32, 0.25]} />
       </spotLight>
@@ -86,8 +86,8 @@ function LivingFillSpots() {
         castShadow
         shadow-bias={-0.00008}
         shadow-normalBias={0.026}
-        shadow-mapSize-width={1536}
-        shadow-mapSize-height={1536}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
       >
         <object3D attach="target" position={[1.2, 0.25, -2.2]} />
       </spotLight>

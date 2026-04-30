@@ -4,7 +4,7 @@ import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLigh
 let rectAreaLightLibReady = false
 
 /**
- * ACES + soft PCF shadows + sRGB: tuned for interior daylight + PBR.
+ * ACES + PCF shadows + sRGB: tuned for interior daylight + PBR (PCF over PCFSoft for frame time).
  * Post-processing may disable renderer tone mapping (see RealisticEffects).
  */
 export function configureRenderer(gl: THREE.WebGLRenderer) {
@@ -13,7 +13,7 @@ export function configureRenderer(gl: THREE.WebGLRenderer) {
     rectAreaLightLibReady = true
   }
   gl.shadowMap.enabled = true
-  gl.shadowMap.type = THREE.PCFSoftShadowMap
+  gl.shadowMap.type = THREE.PCFShadowMap
   gl.outputColorSpace = THREE.SRGBColorSpace
   gl.toneMapping = THREE.ACESFilmicToneMapping
   gl.toneMappingExposure = 0.96

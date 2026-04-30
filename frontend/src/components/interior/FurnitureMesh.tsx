@@ -117,7 +117,7 @@ function FurnitureMeshBody({
       if (mesh.isMesh) {
         mesh.castShadow = true
         mesh.receiveShadow = true
-        mesh.frustumCulled = false
+        mesh.frustumCulled = true
       }
     })
     if (mount === 'ceiling') {

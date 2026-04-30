@@ -32,7 +32,7 @@ export function VividHomeExperience({ mode, className }: Props) {
         className="block h-full w-full touch-none"
         style={{ width: '100%', height: '100%' }}
         shadows
-        dpr={[1, 2]}
+        dpr={[1, 1.35]}
         camera={CAM}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => configureRenderer(gl)}

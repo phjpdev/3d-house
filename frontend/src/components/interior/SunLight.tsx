@@ -11,8 +11,8 @@ export function SunLight() {
       position={[0.55, 13.2, 0.42]}
       shadow-bias={-0.00014}
       shadow-normalBias={0.038}
-      shadow-mapSize-width={3072}
-      shadow-mapSize-height={3072}
+      shadow-mapSize-width={2048}
+      shadow-mapSize-height={2048}
       shadow-camera-near={2}
       shadow-camera-far={22}
       shadow-camera-left={-7.5}

@@ -6,10 +6,10 @@ import * as THREE from 'three'
 import { resolveWalkPosition } from '@/lib/houseLayout'
 import { KeyboardTracker } from '@/components/interior/FirstPersonRig'
 
-const SPEED = 2.95
+const SPEED = 3.35
 const EYE = 1.7
-/** Pointer-lock look — matched closer to desktop FPS defaults (was ~0.002, felt sluggish). */
-const LOOK_SENS = 0.00335
+/** Pointer-lock look — slightly higher than vanilla FPS so explore mode feels responsive. */
+const LOOK_SENS = 0.004
 const PITCH_MIN = -1.2
 const PITCH_MAX = 1.25
 

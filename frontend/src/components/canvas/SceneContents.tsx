@@ -253,9 +253,10 @@ export function SceneContents({ mode }: Props) {
 
       <ContactShadows
         position={[0, 0.002, 0]}
-        opacity={0.44}
+        opacity={0.4}
         scale={22}
-        blur={2.1}
+        resolution={256}
+        blur={1.6}
         far={9}
         color="#14100c"
       />
@@ -282,9 +283,9 @@ export function SceneContents({ mode }: Props) {
           ref={editOrbitRef}
           makeDefault
           enableDamping
-          dampingFactor={0.055}
-          rotateSpeed={1.22}
-          zoomSpeed={1.08}
+          dampingFactor={0.14}
+          rotateSpeed={1.45}
+          zoomSpeed={1.2}
           minDistance={1.4}
           maxDistance={16}
           maxPolarAngle={Math.PI / 2 - 0.06}
@@ -302,9 +303,9 @@ export function SceneContents({ mode }: Props) {
           ref={visitOrbitRef}
           makeDefault
           enableDamping
-          dampingFactor={0.055}
-          rotateSpeed={1.22}
-          zoomSpeed={1.08}
+          dampingFactor={0.14}
+          rotateSpeed={1.45}
+          zoomSpeed={1.2}
           minDistance={1.4}
           maxDistance={16}
           maxPolarAngle={Math.PI / 2 - 0.06}
