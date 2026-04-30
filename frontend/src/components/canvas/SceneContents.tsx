@@ -23,7 +23,14 @@ import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
 import { loadMeshyGlbViaProxy } from '@/lib/meshyGlbProxyCache'
 import { useVividHomeStore } from '@/store/vividHomeStore'
 import { useFrame, useThree } from '@react-three/fiber'
-import { clampEditCameraPosition, clampEditOrbitTarget, inWalkable, resolveWalkPosition } from '@/lib/houseLayout'
+import {
+  CORRIDOR_EDIT_MIN_ORBIT_DISTANCE,
+  ROOM,
+  clampEditCameraPosition,
+  clampEditOrbitTarget,
+  inWalkable,
+  resolveWalkPosition,
+} from '@/lib/houseLayout'
 import { applyEditStructurePreset } from '@/lib/editOrbitPresets'
 import type { EditStructureZone } from '@/lib/editOrbitPresets'
 import { VisitWalkRig } from '@/components/canvas/VisitWalkRig'
@@ -196,8 +203,17 @@ function EditCameraInteriorClamp({
   useFrame(() => {
     if (!active) return
     const oc = orbitRef.current
-    if (oc?.target) clampEditOrbitTarget(oc.target)
-    oc?.update()
+    if (!oc?.target) return
+
+    const zCorridorStart = ROOM.half + 0.28
+    const inSouthHall = oc.target.z >= zCorridorStart
+    /** Narrow hall: keep closest zoom inside inner wall planes (see CORRIDOR_EDIT_MIN_ORBIT_DISTANCE). */
+    oc.minDistance = inSouthHall ? CORRIDOR_EDIT_MIN_ORBIT_DISTANCE : 1.4
+    oc.maxDistance = inSouthHall ? 9 : 12
+    oc.minPolarAngle = inSouthHall ? 0.22 : 0.38
+
+    clampEditOrbitTarget(oc.target)
+    oc.update()
     clampEditCameraPosition(camera.position)
   }, 1)
   return null

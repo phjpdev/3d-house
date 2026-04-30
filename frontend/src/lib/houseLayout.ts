@@ -13,6 +13,12 @@ export const CORRIDOR = {
   southLen: 5.45,
 } as const
 
+/**
+ * Inner corridor half-width is `halfW` (between inner wall faces). Orbit `minDistance` must stay
+ * below that or the camera sphere intersects the side walls when the pivot is on the centerline.
+ */
+export const CORRIDOR_EDIT_MIN_ORBIT_DISTANCE = Math.max(0.36, CORRIDOR.halfW - 0.22)
+
 export const PLAYER_RADIUS = 0.22
 
 const PR = PLAYER_RADIUS
@@ -71,7 +77,6 @@ export function clampEditCameraPosition(pos: THREE.Vector3): void {
   const zNorth = -ROOM.half + m
   const zSouthMax = ROOM.half + CORRIDOR.southLen - m
   const zCorridorStart = ROOM.half + 0.28
-  const xHall = CORRIDOR.halfW - m
 
   pos.y = THREE.MathUtils.clamp(pos.y, 0.34, ROOM.height - 0.12)
   pos.z = THREE.MathUtils.clamp(pos.z, zNorth, zSouthMax)
@@ -79,7 +84,16 @@ export function clampEditCameraPosition(pos: THREE.Vector3): void {
   if (pos.z < zCorridorStart) {
     pos.x = THREE.MathUtils.clamp(pos.x, -xRoom, xRoom)
   } else {
-    pos.x = THREE.MathUtils.clamp(pos.x, -xHall, xHall)
+    /**
+     * Hall inner half-width is `CORRIDOR.halfW`, but orbit needs lateral swing like room mode (~1.4 m).
+     * The old tight ±(halfW - margin) clamp fought OrbitControls (“mouse stuck”).
+     * Allow a wider cross-track bound while staying inside the global shell (cap at room width).
+     */
+    const xCorridorOrbitHalf = Math.min(
+      xRoom,
+      CORRIDOR.halfW + ROOM.wallT + 0.82,
+    )
+    pos.x = THREE.MathUtils.clamp(pos.x, -xCorridorOrbitHalf, xCorridorOrbitHalf)
   }
 }
 
