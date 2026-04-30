@@ -3,6 +3,7 @@ import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { InteriorShellMaterials } from '@/types/interiorMaterials'
 import { ROOM } from '@/lib/houseLayout'
+import { NORTH_WINDOW } from '@/lib/northWindowLayout'
 
 type Props = {
   materials: InteriorShellMaterials
@@ -36,9 +37,9 @@ export function ProceduralRoom({ materials, showBuiltInDesk }: Props) {
   )
 
   /** Window opening + garden backdrop — sells daylight without rebuilding collision volumes (still closed shell). */
-  const WIN_W = 2.85
-  const WIN_H = 1.52
-  const winBottom = 0.86
+  const WIN_W = NORTH_WINDOW.width
+  const WIN_H = NORTH_WINDOW.height
+  const winBottom = NORTH_WINDOW.sillY
   const winTop = winBottom + WIN_H
   const wallBottom = yWallCtr - hWall / 2
   const wallTop = yWallCtr + hWall / 2
@@ -50,29 +51,19 @@ export function ProceduralRoom({ materials, showBuiltInDesk }: Props) {
   const sillY = wallBottom + sillH / 2
   const lintelH = Math.max(0.08, wallTop - winTop)
   const lintelY = winTop + lintelH / 2
-  const gardenZ = -ROOM.half - 10
+  /** South rim of the grass plane (world +Z) flush with the living room’s inner north line — lawn sits north of the house only. */
+  const gardenHalfD = 21
+  const gardenW = 58
+  const gardenD = gardenHalfD * 2
+  const gardenZ = -ROOM.half - gardenHalfD
 
   return (
     <group name="ProceduralRoom">
-      {/* Exterior read — grass + simplified silhouettes (cheap depth cue beyond glass). */}
-      {/* Slightly below y=0 so the huge garden plane does not Z-fight with the interior floor slab top. */}
       <group position={[0, -0.06, gardenZ]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow name="GardenGround">
-          <planeGeometry args={[48, 36]} />
+          <planeGeometry args={[gardenW, gardenD]} />
           <meshStandardMaterial color="#33553d" roughness={0.94} metalness={0} envMapIntensity={0.28} />
         </mesh>
-        {[
-          [-5.2, 0, 1.2, 1.1],
-          [1.4, 0, 2.2, 0.85],
-          [5.5, 0, 0.3, 0.95],
-        ].map(([tx, ty, tz, sc], i) => (
-          <group key={i} position={[tx, ty, tz]}>
-            <mesh castShadow position={[0, sc * 1.45, 0]}>
-              <cylinderGeometry args={[sc * 0.35, sc * 0.42, sc * 2.9, 9]} />
-              <meshStandardMaterial color="#2a382e" roughness={0.91} metalness={0} envMapIntensity={0.35} />
-            </mesh>
-          </group>
-        ))}
       </group>
 
       <mesh
@@ -124,7 +115,7 @@ export function ProceduralRoom({ materials, showBuiltInDesk }: Props) {
 
       <mesh
         name="NorthGlass"
-        position={[0, winBottom + WIN_H / 2, -ROOM.half + 0.045]}
+        position={[0, winBottom + WIN_H / 2, NORTH_WINDOW.glassZ]}
         rotation={[0, 0, 0]}
         material={glassMat}
       >

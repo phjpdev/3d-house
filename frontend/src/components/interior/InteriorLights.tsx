@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import * as THREE from 'three'
-import { CORRIDOR_GEOM, ROOM } from '@/lib/houseLayout'
+import { CORRIDOR, CORRIDOR_GEOM, ROOM } from '@/lib/houseLayout'
 
 const CEILING_Y = ROOM.height - 0.11
 
@@ -97,12 +97,14 @@ function LivingFillSpots() {
 
 /** Used only with the procedural shell (room + corridors). Main ceiling fixtures come from house `furniture` with `mount: "ceiling"`. */
 export function InteriorLights() {
-  const { zSouthMid, eastFloorCx, zEastMid } = CORRIDOR_GEOM
+  const { zSouthMid } = CORRIDOR_GEOM
+  const { southLen: sl } = CORRIDOR
+  const hallMidZ = ROOM.half + sl * 0.62
 
   return (
     <group name="InteriorLights">
       <CeilingLamp position={[0, CEILING_Y, zSouthMid]} intensity={16} />
-      <CeilingLamp position={[eastFloorCx, CEILING_Y, zEastMid]} intensity={14} />
+      <CeilingLamp position={[0, CEILING_Y, hallMidZ]} intensity={14} />
       <LivingFillSpots />
     </group>
   )

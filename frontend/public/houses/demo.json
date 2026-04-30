@@ -3,29 +3,8 @@
   "name": "Demo memory room",
   "tagline": "Living room plus south and east corridors — frames in the halls, desk photo, and owner JSON.",
   "roomGltfUrl": null,
-  "builtInDesk": true,
+  "builtInDesk": false,
   "furniture": [
-    {
-      "id": "sofa",
-      "url": "/models/manseok_kim-sofa-2118.glb",
-      "position": [-1.05, 0, -3.18],
-      "rotationY": 0,
-      "scale": 36
-    },
-    {
-      "id": "lounge-armchair",
-      "url": "/models/denielcz-armchair-2924.glb",
-      "position": [1.52, 0, -2.38],
-      "rotationY": 2.7,
-      "scale": 1
-    },
-    {
-      "id": "desk-chair",
-      "url": "/models/quaternius_cc0-office-chair-1192.glb",
-      "position": [2.32, 0, -1.38],
-      "rotationY": -0.52,
-      "scale": 0.5
-    },
     {
       "id": "ceiling-light-main",
       "url": "/models/quaternius_cc0-icosahedron-light-1143.glb",
@@ -35,12 +14,12 @@
       "lightIntensity": 34
     },
     {
-      "id": "ceiling-light-sofa",
+      "id": "ceiling-light-north",
       "url": "/models/quaternius_cc0-icosahedron-light-1143.glb",
-      "position": [-2.35, 0, 0.35],
+      "position": [-0.35, 0, -1.35],
       "mount": "ceiling",
-      "scale": 0.4,
-      "lightIntensity": 26
+      "scale": 0.42,
+      "lightIntensity": 28
     }
   ],
   "spawn": {
@@ -59,18 +38,6 @@
       "imageUrl": "https://picsum.photos/seed/memory-a/800/600",
       "title": "Sunday kitchen",
       "caption": "A calm morning before everyone arrived. The light never looked quite the same again.",
-      "audioUrl": null
-    },
-    {
-      "id": "wall-2",
-      "kind": "wall_frame",
-      "position": [0, 1.55, -3.74],
-      "rotationY": 0,
-      "width": 1.15,
-      "height": 0.86,
-      "imageUrl": "https://picsum.photos/seed/memory-b/800/600",
-      "title": "The long hallway",
-      "caption": "We measured growing children against this frame until the pencil marks climbed out of reach.",
       "audioUrl": null
     },
     {
@@ -119,18 +86,6 @@
       "imageUrl": "https://picsum.photos/seed/corridor-east1/640/480",
       "title": "East wing window wall",
       "caption": "Afternoon sun crawled along this plaster until it met the door frame and stopped, like it was tired too.",
-      "audioUrl": null
-    },
-    {
-      "id": "desk-1",
-      "kind": "desk_photo",
-      "position": [2.35, 0.92, -0.9],
-      "rotationY": -0.35,
-      "width": 0.28,
-      "height": 0.35,
-      "imageUrl": "https://picsum.photos/seed/memory-c/600/800",
-      "title": "On grandfather's desk",
-      "caption": "Kept here the way it always was — not pinned to a wall, but resting where hands would find it.",
       "audioUrl": null
     }
   ]

@@ -71,29 +71,6 @@ type State = {
 
 const defaultFurniture: PlacedFurniture[] = [
   {
-    id: 'sofa',
-    sourceId: 'sofa',
-    url: '/models/manseok_kim-sofa-2118.glb',
-    position: [-1.05, 0, -3.18],
-    rotation: [0, 0, 0],
-    scale: 36,
-  },
-  {
-    id: 'lounge-armchair',
-    sourceId: 'armchair',
-    url: '/models/denielcz-armchair-2924.glb',
-    position: [1.52, 0, -2.38],
-    rotation: [0, 2.7, 0],
-    scale: 1,
-  },
-  {
-    id: 'desk-chair',
-    url: '/models/quaternius_cc0-office-chair-1192.glb',
-    position: [2.32, 0, -1.38],
-    rotation: [0, -0.52, 0],
-    scale: 0.5,
-  },
-  {
     id: 'ceiling-light-main',
     url: '/models/quaternius_cc0-icosahedron-light-1143.glb',
     position: [0.15, 0, 0.2],
@@ -103,15 +80,23 @@ const defaultFurniture: PlacedFurniture[] = [
     lightIntensity: 34,
   },
   {
-    id: 'ceiling-light-sofa',
+    id: 'ceiling-light-north',
     url: '/models/quaternius_cc0-icosahedron-light-1143.glb',
-    position: [-2.35, 0, 0.35],
+    position: [-0.35, 0, -1.35],
     rotation: [0, 0, 0],
-    scale: 0.4,
+    scale: 0.42,
     mount: 'ceiling',
-    lightIntensity: 26,
+    lightIntensity: 28,
   },
 ]
+
+/** Removed from scene layout; filtered out of persisted placements on rehydrate. */
+const STRIPPED_PLACEMENT_IDS = new Set([
+  'desk-chair',
+  'sofa',
+  'lounge-armchair',
+  'ceiling-light-sofa',
+])
 
 export const useVividHomeStore = create<State>()(
   persist(
@@ -214,6 +199,9 @@ export const useVividHomeStore = create<State>()(
       }),
       merge: (persisted, current) => {
         const p = persisted as Partial<Pick<State, 'library' | 'placedFurniture' | 'wallPictures'>>
+        const placed = (p.placedFurniture ?? current.placedFurniture).filter(
+          (item) => !STRIPPED_PLACEMENT_IDS.has(item.id),
+        )
         const nextLib = (p.library ?? current.library).map((m) => ({
           ...m,
           thumbnailUrl:
@@ -223,6 +211,7 @@ export const useVividHomeStore = create<State>()(
           ...current,
           ...p,
           library: nextLib,
+          placedFurniture: placed,
         }
       },
     },
