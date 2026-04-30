@@ -20,6 +20,8 @@ import {
   meshyStartTextRefine,
 } from '@/app/actions/meshy'
 import type { MeshyImageTask, MeshyTextTask } from '@vividhome/backend'
+import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
+import { fileToPersistableThumbnail, toPersistableThumbnailUrl } from '@/lib/persistableThumbnail'
 import { useVividHomeStore } from '@/store/vividHomeStore'
 
 function sleep(ms: number) {
@@ -155,6 +157,7 @@ export function BuildTab() {
   const [glbUrl, setGlbUrl] = useState<string | null>(null)
   const [meshProgress, setMeshProgress] = useState<number | null>(null)
   const [previewKey, setPreviewKey] = useState(0)
+  const [saveBusy, setSaveBusy] = useState(false)
 
   const glbPreview = useMeshyGlbBlobUrl(glbUrl)
   const combinedError = error ?? glbPreview.error
@@ -270,13 +273,49 @@ export function BuildTab() {
     }
   }
 
-  const saveToLibrary = () => {
+  const saveToLibrary = async () => {
     if (!glbUrl) return
+    setError(null)
+
+    let libraryUrl = glbUrl
+
+    if (isMeshySignedAssetUrl(glbUrl)) {
+      setSaveBusy(true)
+      try {
+        const res = await fetch('/api/save-library-glb', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sourceUrl: glbUrl, nameHint: prompt }),
+        })
+        const data = (await res.json()) as { ok?: boolean; publicUrl?: string; error?: string }
+        if (!res.ok) throw new Error(data.error ?? 'Could not save model')
+        libraryUrl = data.publicUrl!
+        setGlbUrl(libraryUrl)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Save failed')
+        return
+      } finally {
+        setSaveBusy(false)
+      }
+    }
+
+    if (library.some((m) => m.glbUrl === libraryUrl)) {
+      setError('This model is already in your library.')
+      return
+    }
+
+    let thumbnailUrl: string | undefined
+    if (file && previewUrl?.startsWith('blob:')) {
+      thumbnailUrl = (await fileToPersistableThumbnail(file)) ?? undefined
+    } else {
+      thumbnailUrl = (await toPersistableThumbnailUrl(previewUrl)) ?? undefined
+    }
+
     addLibraryModel({
       name: prompt.slice(0, 42) || 'Generated model',
       prompt,
-      glbUrl,
-      thumbnailUrl: previewUrl ?? undefined,
+      glbUrl: libraryUrl,
+      thumbnailUrl,
     })
   }
 
@@ -404,12 +443,16 @@ export function BuildTab() {
             </div>
             <button
               type="button"
-              disabled={!glbUrl}
-              onClick={saveToLibrary}
+              disabled={!glbUrl || saveBusy}
+              onClick={() => void saveToLibrary()}
               className="mt-4 w-full rounded-xl bg-amber-900/90 px-4 py-3 text-sm font-medium text-amber-50 hover:bg-amber-900 disabled:opacity-40"
             >
-              Save to My Library
+              {saveBusy ? 'Saving to disk…' : 'Save to My Library'}
             </button>
+            <p className="mt-2 text-[11px] text-stone-500">
+              Saves a copy under <code className="rounded bg-stone-100 px-1">public/models/user/</code>{' '}
+              via the dev server (needs a writable filesystem).
+            </p>
           </div>
 
           <div className="rounded-2xl border border-stone-200/80 bg-white/70 p-5 shadow-sm">

@@ -8,6 +8,7 @@ export function placedToFurniture(p: PlacedFurniture): FurnitureConfig {
     position: p.mount === 'ceiling' ? [p.position[0], 0, p.position[2]] : p.position,
     rotationX: p.rotation[0],
     rotationY: p.rotation[1],
+    rotationZ: p.rotation[2],
     scale: p.scale,
     mount: p.mount,
     lightIntensity: p.lightIntensity,

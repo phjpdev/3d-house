@@ -189,10 +189,11 @@ export const FurnitureMesh = forwardRef<THREE.Group, Props>(function FurnitureMe
   const mount = item.mount ?? 'floor'
   const rx = item.rotationX ?? 0
   const ry = item.rotationY ?? 0
+  const rz = item.rotationZ ?? 0
   const worldY = mount === 'ceiling' ? CEILING_UNDER : item.position[1]
 
   return (
-    <group ref={ref} position={[item.position[0], worldY, item.position[2]]} rotation={[rx, ry, 0]}>
+    <group ref={ref} position={[item.position[0], worldY, item.position[2]]} rotation={[rx, ry, rz]}>
       {loadUrl ? <FurnitureMeshBody key={loadUrl} item={item} gltfUrl={loadUrl} /> : null}
     </group>
   )

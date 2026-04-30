@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# GLBs saved from Build tab via /api/save-library-glb (keep folder via user/.gitkeep)
+/public/models/user/*.glb

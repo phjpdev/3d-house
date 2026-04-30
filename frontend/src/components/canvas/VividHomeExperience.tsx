@@ -16,9 +16,18 @@ const CAM = { fov: 52, near: 0.08, far: 90 } as const
 
 export function VividHomeExperience({ mode, className }: Props) {
   const clearSelection = useVividHomeStore((s) => s.setSelectedPlacedId)
+  const libraryPlacementPending = useVividHomeStore((s) => s.libraryPlacementPending)
 
   return (
-    <div className={['h-full w-full', className].filter(Boolean).join(' ')}>
+    <div
+      className={[
+        'h-full w-full',
+        libraryPlacementPending && mode === 'edit' ? 'cursor-crosshair' : '',
+        className,
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <Canvas
         className="block h-full w-full touch-none"
         style={{ width: '100%', height: '100%' }}
@@ -27,7 +36,10 @@ export function VividHomeExperience({ mode, className }: Props) {
         camera={CAM}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => configureRenderer(gl)}
-        onPointerMissed={() => clearSelection(null)}
+        onPointerMissed={() => {
+          if (libraryPlacementPending) return
+          clearSelection(null)
+        }}
       >
         <Suspense fallback={null}>
           <SceneContents mode={mode} />

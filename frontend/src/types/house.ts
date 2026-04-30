@@ -10,6 +10,7 @@ export interface FurnitureConfig {
   position: [number, number, number]
   rotationX?: number
   rotationY?: number
+  rotationZ?: number
   /** Uniform scale; models vary in units — tune per asset */
   scale?: number
   mount?: FurnitureMount

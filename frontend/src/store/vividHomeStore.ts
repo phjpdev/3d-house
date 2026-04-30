@@ -4,6 +4,8 @@ import { v4 as uuid } from 'uuid'
 
 export type AppTab = 'build' | 'edit' | 'visit'
 
+export type EditTransformMode = 'translate' | 'rotate' | 'scale'
+
 /** Saved Meshy or catalog asset */
 export type LibraryModel = {
   id: string
@@ -44,6 +46,10 @@ type State = {
   selectedPlacedId: string | null
   /** Visit tab: allow orbit instead of walk */
   visitUseOrbit: boolean
+  /** Edit tab: TransformControls mode */
+  editTransformMode: EditTransformMode
+  /** Edit tab: next floor click places this library model */
+  libraryPlacementPending: string | null
 
   setTab: (t: AppTab) => void
   addLibraryModel: (m: Omit<LibraryModel, 'id' | 'createdAt'> & { id?: string }) => void
@@ -56,7 +62,11 @@ type State = {
   updateWallPicture: (id: string, patch: Partial<WallPicture>) => void
   removeWallPicture: (id: string) => void
   setVisitUseOrbit: (v: boolean) => void
-  placeLibraryAtCenter: (libId: string) => void
+  setEditTransformMode: (m: EditTransformMode) => void
+  setLibraryPlacementPending: (libId: string | null) => void
+  cancelLibraryPlacement: () => void
+  /** Spawn library model at floor position (meters), select it, clear placement mode */
+  placeLibraryAt: (libId: string, position: [number, number, number]) => void
 }
 
 const defaultFurniture: PlacedFurniture[] = [
@@ -112,6 +122,8 @@ export const useVividHomeStore = create<State>()(
       wallPictures: [],
       selectedPlacedId: null,
       visitUseOrbit: false,
+      editTransformMode: 'translate',
+      libraryPlacementPending: null,
 
       setTab: (tab) => set({ tab }),
       addLibraryModel: (m) =>
@@ -122,7 +134,10 @@ export const useVividHomeStore = create<State>()(
               name: m.name,
               prompt: m.prompt,
               glbUrl: m.glbUrl,
-              thumbnailUrl: m.thumbnailUrl,
+              thumbnailUrl:
+                m.thumbnailUrl && !m.thumbnailUrl.startsWith('blob:')
+                  ? m.thumbnailUrl
+                  : undefined,
               createdAt: Date.now(),
             },
             ...s.library,
@@ -166,18 +181,23 @@ export const useVividHomeStore = create<State>()(
       removeWallPicture: (id) =>
         set((s) => ({ wallPictures: s.wallPictures.filter((w) => w.id !== id) })),
       setVisitUseOrbit: (visitUseOrbit) => set({ visitUseOrbit }),
-      placeLibraryAtCenter: (libId) => {
+      setEditTransformMode: (editTransformMode) => set({ editTransformMode }),
+      setLibraryPlacementPending: (libraryPlacementPending) => set({ libraryPlacementPending }),
+      cancelLibraryPlacement: () => set({ libraryPlacementPending: null }),
+      placeLibraryAt: (libId, position) => {
         const lib = get().library.find((l) => l.id === libId)
         if (!lib) return
         const id = `placed-${lib.id}-${Date.now()}`
         set((s) => ({
+          libraryPlacementPending: null,
+          selectedPlacedId: id,
           placedFurniture: [
             ...s.placedFurniture,
             {
               id,
               sourceId: lib.id,
               url: lib.glbUrl,
-              position: [0.2, 0, -0.5],
+              position,
               rotation: [0, 0, 0],
               scale: 0.5,
             },
@@ -192,6 +212,19 @@ export const useVividHomeStore = create<State>()(
         placedFurniture: s.placedFurniture,
         wallPictures: s.wallPictures,
       }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<Pick<State, 'library' | 'placedFurniture' | 'wallPictures'>>
+        const nextLib = (p.library ?? current.library).map((m) => ({
+          ...m,
+          thumbnailUrl:
+            m.thumbnailUrl?.startsWith('blob:') ? undefined : m.thumbnailUrl,
+        }))
+        return {
+          ...current,
+          ...p,
+          library: nextLib,
+        }
+      },
     },
   ),
 )
