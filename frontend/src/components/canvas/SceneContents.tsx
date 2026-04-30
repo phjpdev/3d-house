@@ -33,6 +33,11 @@ import { applyEditStructurePreset } from '@/lib/editOrbitPresets'
 import type { EditStructureZone } from '@/lib/editOrbitPresets'
 import { VisitWalkRig } from '@/components/canvas/VisitWalkRig'
 import { RealisticEffects } from '@/components/canvas/RealisticEffects'
+import {
+  CoohomFurnitureEditOverlay,
+  CoohomWallEditOverlay,
+  useApplyCoohomTransformTheme,
+} from '@/components/canvas/CoohomFurnitureEditOverlay'
 import type { PlacedFurniture, WallPicture } from '@/store/vividHomeStore'
 
 const HDRI =
@@ -57,6 +62,9 @@ const INTERIOR_ORBIT_MAX_POLAR = Math.PI / 2 - 0.035
 const INTERIOR_ORBIT_MIN_DISTANCE = 1.08
 const INTERIOR_ORBIT_MAX_DISTANCE_EDIT = 220
 const INTERIOR_ORBIT_MAX_DISTANCE_VISIT = 240
+
+/** Matches Coohom-style overlay ring / drei TransformControls sizing */
+const EDIT_GIZMO_SIZE = 1.06
 
 type Props = {
   mode: 'edit' | 'visit'
@@ -325,6 +333,12 @@ export function SceneContents({ mode }: Props) {
   const selectedItem = placed.find((p) => p.id === selectedId)
   const selectedWallPictureItem = wallPictures.find((w) => w.id === selectedWallPictureId)
 
+  useApplyCoohomTransformTheme(
+    transformControlsRef,
+    mode === 'edit' && Boolean(selectedItem || selectedWallPictureItem),
+    `${selectedId ?? ''}-${selectedWallPictureId ?? ''}-${editTransformMode}`,
+  )
+
   /** Orbit must stay enabled whenever nothing is selected, or after transform unmounts mid-drag. */
   useEffect(() => {
     if (mode !== 'edit') return
@@ -446,29 +460,46 @@ export function SceneContents({ mode }: Props) {
       />
 
       {mode === 'edit' && selectedWallPictureItem && wallTransformTarget ? (
-        <TransformControls
-          ref={transformControlsRef}
-          key={`wall-${selectedWallPictureId ?? 'none'}`}
-          object={wallTransformTarget}
-          mode={editTransformMode}
-          onMouseUp={() => {
-            if (wallTransformTarget && selectedWallPictureItem)
-              syncWallPictureFromGroup(wallTransformTarget, selectedWallPictureItem, updateWallPicture)
-          }}
-        />
+        <>
+          <CoohomWallEditOverlay target={wallTransformTarget} />
+          <TransformControls
+            ref={transformControlsRef}
+            key={`wall-${selectedWallPictureId ?? 'none'}`}
+            object={wallTransformTarget}
+            mode={editTransformMode}
+            space="world"
+            size={EDIT_GIZMO_SIZE}
+            onMouseUp={() => {
+              if (wallTransformTarget && selectedWallPictureItem)
+                syncWallPictureFromGroup(wallTransformTarget, selectedWallPictureItem, updateWallPicture)
+            }}
+          />
+        </>
       ) : null}
 
       {mode === 'edit' && selectedItem && transformTarget ? (
-        <TransformControls
-          ref={transformControlsRef}
-          key={`fur-${selectedId ?? 'none'}`}
-          object={transformTarget}
-          mode={editTransformMode}
-          onMouseUp={() => {
-            if (transformTarget && selectedItem)
-              syncPlacedFromGroup(transformTarget, selectedItem, upsert)
-          }}
-        />
+        <>
+          <CoohomFurnitureEditOverlay
+            target={transformTarget}
+            transformMode={editTransformMode}
+            tcRef={transformControlsRef}
+            gizmoSize={EDIT_GIZMO_SIZE}
+            onFurnitureSync={() => {
+              if (transformTarget && selectedItem) syncPlacedFromGroup(transformTarget, selectedItem, upsert)
+            }}
+          />
+          <TransformControls
+            ref={transformControlsRef}
+            key={`fur-${selectedId ?? 'none'}`}
+            object={transformTarget}
+            mode={editTransformMode}
+            space="world"
+            size={EDIT_GIZMO_SIZE}
+            onMouseUp={() => {
+              if (transformTarget && selectedItem) syncPlacedFromGroup(transformTarget, selectedItem, upsert)
+            }}
+          />
+        </>
       ) : null}
 
       {mode === 'edit' ? (
