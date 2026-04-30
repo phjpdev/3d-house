@@ -58,3 +58,27 @@ export function resolveWalkPosition(
   if (inWalkable(xb, oz)) return [xb, oz]
   return [ox, oz]
 }
+
+/** Clearance from inner wall planes so the edit camera stays inside the shell (avoids back-face culled walls). */
+const EDIT_CAM_WALL_MARGIN = 0.32
+
+/**
+ * Keeps the orbit camera inside the living room + south corridor. Mutates `pos` (world space).
+ */
+export function clampEditCameraPosition(pos: THREE.Vector3): void {
+  const m = EDIT_CAM_WALL_MARGIN
+  const xRoom = ROOM.half - m
+  const zNorth = -ROOM.half + m
+  const zSouthMax = ROOM.half + CORRIDOR.southLen - m
+  const zCorridorStart = ROOM.half + 0.28
+  const xHall = CORRIDOR.halfW - m
+
+  pos.y = THREE.MathUtils.clamp(pos.y, 0.34, ROOM.height - 0.12)
+  pos.z = THREE.MathUtils.clamp(pos.z, zNorth, zSouthMax)
+
+  if (pos.z < zCorridorStart) {
+    pos.x = THREE.MathUtils.clamp(pos.x, -xRoom, xRoom)
+  } else {
+    pos.x = THREE.MathUtils.clamp(pos.x, -xHall, xHall)
+  }
+}

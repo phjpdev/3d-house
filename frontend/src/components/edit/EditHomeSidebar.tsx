@@ -1,42 +1,136 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useVividHomeStore } from '@/store/vividHomeStore'
 import type { EditTransformMode, LibraryModel } from '@/store/vividHomeStore'
 import { LibraryModelModal } from '@/components/edit/LibraryModelModal'
 import { LibraryThumbnail } from '@/components/edit/LibraryThumbnail'
+import { WallArtModal, type CatalogPhoto } from '@/components/edit/WallArtModal'
+
+type UserModelsResponse = { models: { filename: string; url: string; name: string }[] }
+type PhotosResponse = { photos: CatalogPhoto[] }
+
+function toUserLibraryModels(data: UserModelsResponse): LibraryModel[] {
+  return data.models.map((m, i) => ({
+    id: `user:${m.filename}`,
+    name: m.name,
+    glbUrl: m.url,
+    createdAt: i,
+  }))
+}
 
 export function EditHomeSidebar() {
   const library = useVividHomeStore((s) => s.library)
+  const userModels = useVividHomeStore((s) => s.userModels)
+  const setUserModels = useVividHomeStore((s) => s.setUserModels)
   const wallPictures = useVividHomeStore((s) => s.wallPictures)
   const setLibraryPlacementPending = useVividHomeStore((s) => s.setLibraryPlacementPending)
   const cancelLibraryPlacement = useVividHomeStore((s) => s.cancelLibraryPlacement)
   const libraryPlacementPending = useVividHomeStore((s) => s.libraryPlacementPending)
   const addWallPicture = useVividHomeStore((s) => s.addWallPicture)
   const removeWallPicture = useVividHomeStore((s) => s.removeWallPicture)
+  const removeWallPicturesByImageUrl = useVividHomeStore((s) => s.removeWallPicturesByImageUrl)
+  const removeLibraryModel = useVividHomeStore((s) => s.removeLibraryModel)
+  const removePlacedByModelUrl = useVividHomeStore((s) => s.removePlacedByModelUrl)
+  const removePlacedBySourceId = useVividHomeStore((s) => s.removePlacedBySourceId)
   const removePlaced = useVividHomeStore((s) => s.removePlaced)
   const selectedId = useVividHomeStore((s) => s.selectedPlacedId)
+  const selectedWallPictureId = useVividHomeStore((s) => s.selectedWallPictureId)
+  const setSelectedWallPictureId = useVividHomeStore((s) => s.setSelectedWallPictureId)
   const editTransformMode = useVividHomeStore((s) => s.editTransformMode)
   const setEditTransformMode = useVividHomeStore((s) => s.setEditTransformMode)
   const fileRef = useRef<HTMLInputElement>(null)
   const [modalModel, setModalModel] = useState<LibraryModel | null>(null)
+  const [modalWallPhoto, setModalWallPhoto] = useState<CatalogPhoto | null>(null)
+  const [userListError, setUserListError] = useState<string | null>(null)
+  const [userListLoaded, setUserListLoaded] = useState(false)
+  const [photoCatalog, setPhotoCatalog] = useState<CatalogPhoto[]>([])
+  const [photosError, setPhotosError] = useState<string | null>(null)
+  const [photosLoaded, setPhotosLoaded] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
-  const onWallUpload = (f: File | null) => {
-    if (!f) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = typeof reader.result === 'string' ? reader.result : ''
-      if (!dataUrl) return
-      addWallPicture({
-        id: crypto.randomUUID(),
-        imageUrl: dataUrl,
-        position: [-1.6, 1.48, -3.74],
-        rotationY: 0,
-        width: 0.72,
-        height: 0.56,
+  const loadUserModels = useCallback(async () => {
+    const res = await fetch('/api/user-models')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = (await res.json()) as UserModelsResponse
+    setUserModels(toUserLibraryModels(data))
+  }, [setUserModels])
+
+  const loadPhotos = useCallback(async () => {
+    const res = await fetch('/api/photos')
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = (await res.json()) as PhotosResponse
+    setPhotoCatalog(data.photos ?? [])
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setUserListError(null)
+    setUserListLoaded(false)
+    loadUserModels()
+      .catch((e: unknown) => {
+        if (!cancelled)
+          setUserListError(e instanceof Error ? e.message : 'Could not load public/models/user')
       })
+      .finally(() => {
+        if (!cancelled) setUserListLoaded(true)
+      })
+    return () => {
+      cancelled = true
     }
-    reader.readAsDataURL(f)
+  }, [loadUserModels])
+
+  useEffect(() => {
+    let cancelled = false
+    setPhotosError(null)
+    setPhotosLoaded(false)
+    loadPhotos()
+      .catch((e: unknown) => {
+        if (!cancelled)
+          setPhotosError(e instanceof Error ? e.message : 'Could not load public/photos')
+      })
+      .finally(() => {
+        if (!cancelled) setPhotosLoaded(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [loadPhotos])
+
+  const removeLibraryFromModal = async () => {
+    const m = modalModel
+    if (!m) return
+    if (m.id.startsWith('user:')) {
+      const filename = m.id.slice('user:'.length)
+      const res = await fetch(`/api/user-models?filename=${encodeURIComponent(filename)}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(typeof err.error === 'string' ? err.error : `HTTP ${res.status}`)
+      }
+      removePlacedByModelUrl(m.glbUrl)
+      await loadUserModels()
+      return
+    }
+    removeLibraryModel(m.id)
+    removePlacedBySourceId(m.id)
+  }
+
+  const onWallUpload = async (f: File | null) => {
+    if (!f) return
+    setUploadError(null)
+    const fd = new FormData()
+    fd.append('file', f)
+    try {
+      const res = await fetch('/api/photos', { method: 'POST', body: fd })
+      const data = (await res.json()) as { ok?: boolean; error?: string }
+      if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`)
+      await loadPhotos()
+    } catch (e: unknown) {
+      setUploadError(e instanceof Error ? e.message : 'Upload failed')
+    }
+    if (fileRef.current) fileRef.current.value = ''
   }
 
   const transformModes: { id: EditTransformMode; label: string }[] = [
@@ -45,12 +139,45 @@ export function EditHomeSidebar() {
     { id: 'scale', label: 'Scale' },
   ]
 
+  const selectedWallPlaced = wallPictures.find((w) => w.id === selectedWallPictureId)
+
   return (
     <>
       <LibraryModelModal
         model={modalModel}
         onClose={() => setModalModel(null)}
         onPlaceInRoom={(libId) => setLibraryPlacementPending(libId)}
+        onRemoveFromList={removeLibraryFromModal}
+      />
+
+      <WallArtModal
+        photo={modalWallPhoto}
+        onClose={() => setModalWallPhoto(null)}
+        onRemoveFromDisk={async () => {
+          const p = modalWallPhoto
+          if (!p) return
+          const res = await fetch(`/api/photos?filename=${encodeURIComponent(p.filename)}`, {
+            method: 'DELETE',
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            throw new Error(typeof err.error === 'string' ? err.error : `HTTP ${res.status}`)
+          }
+          removeWallPicturesByImageUrl(p.url)
+          await loadPhotos()
+        }}
+        onPlaceInHome={() => {
+          const p = modalWallPhoto
+          if (!p) return
+          const id = addWallPicture({
+            imageUrl: p.url,
+            position: [-1.6, 1.48, -3.74],
+            rotationY: 0,
+            width: 0.72,
+            height: 0.56,
+          })
+          setSelectedWallPictureId(id)
+        }}
       />
 
       <aside className="w-full shrink-0 border-stone-200 bg-stone-50/90 p-4 lg:max-h-full lg:w-80 lg:overflow-y-auto lg:border-r">
@@ -72,7 +199,42 @@ export function EditHomeSidebar() {
           Tap an item for a 3D preview. Use Place in room, then click the floor. Select a piece in
           the scene to move, rotate, or scale.
         </p>
-        <ul className="mt-4 space-y-2">
+        {userListError ? (
+          <p className="mt-2 text-xs text-amber-800">{userListError}</p>
+        ) : null}
+
+        {userModels.length > 0 ? (
+          <div className="mt-4">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-stone-500">
+              public / models / user
+            </h3>
+            <ul className="mt-2 space-y-2">
+              {userModels.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => setModalModel(m)}
+                    className="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-2 text-left text-sm text-stone-800 hover:bg-stone-50"
+                  >
+                    <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                      <LibraryThumbnail
+                        thumbnailUrl={m.thumbnailUrl}
+                        name={m.name}
+                        className="h-full w-full object-cover text-lg"
+                      />
+                    </span>
+                    <span className="min-w-0 flex-1 leading-snug">{m.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : !userListError && userListLoaded && userModels.length === 0 ? (
+          <p className="mt-2 text-xs text-stone-500">No .glb or .gltf files in public/models/user</p>
+        ) : null}
+
+        <h3 className="mt-6 text-xs font-medium uppercase tracking-wide text-stone-500">Build tab</h3>
+        <ul className="mt-2 space-y-2">
           {library.map((m) => (
             <li key={m.id}>
               <button
@@ -92,21 +254,23 @@ export function EditHomeSidebar() {
             </li>
           ))}
           {library.length === 0 ? (
-            <li className="text-xs text-stone-500">Generate models in Build tab first.</li>
+            <li className="text-xs text-stone-500">No generated models — use Build to add one.</li>
           ) : null}
         </ul>
 
         <div className="mt-8 border-t border-stone-200 pt-6">
           <h3 className="font-serif text-base text-stone-900">Wall art</h3>
           <p className="mt-1 text-xs text-stone-600">
-            Upload — framed pieces merge into the scene (Transform on furniture only for MVP).
+            Images live in <span className="font-mono text-[11px]">public/photos</span>. Upload adds a
+            file there; tap a picture for preview, then Place in home. Click a frame in the scene to
+            select it here.
           </p>
           <input
             ref={fileRef}
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => onWallUpload(e.target.files?.[0] ?? null)}
+            onChange={(e) => void onWallUpload(e.target.files?.[0] ?? null)}
           />
           <button
             type="button"
@@ -115,28 +279,51 @@ export function EditHomeSidebar() {
           >
             Add picture to wall
           </button>
-          <ul className="mt-3 space-y-1 text-xs text-stone-600">
-            {wallPictures.map((w) => (
-              <li key={w.id} className="flex justify-between gap-2">
-                <span className="truncate">{w.id.slice(0, 8)}…</span>
+          {uploadError ? <p className="mt-2 text-xs text-red-700">{uploadError}</p> : null}
+          {photosError ? (
+            <p className="mt-2 text-xs text-amber-800">{photosError}</p>
+          ) : null}
+          <ul className="mt-3 space-y-2">
+            {photoCatalog.map((w) => (
+              <li key={w.filename}>
                 <button
                   type="button"
-                  className="text-red-700 hover:underline"
-                  onClick={() => removeWallPicture(w.id)}
+                  onClick={() => setModalWallPhoto(w)}
+                  className="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-2 text-left text-sm text-stone-800 hover:bg-stone-50"
                 >
-                  Remove
+                  <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-stone-200 bg-stone-100">
+                    <LibraryThumbnail
+                      thumbnailUrl={w.url}
+                      name={w.name}
+                      className="h-full w-full object-cover text-lg"
+                    />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate leading-snug">{w.name}</span>
                 </button>
               </li>
             ))}
           </ul>
+          {!photosError && photosLoaded && photoCatalog.length === 0 ? (
+            <p className="mt-2 text-xs text-stone-500">No images in public/photos yet — upload one above.</p>
+          ) : null}
         </div>
 
         <div className="mt-8 border-t border-stone-200 pt-6">
           <h3 className="font-serif text-base text-stone-900">Selection</h3>
           <p className="mt-1 text-xs text-stone-600">
-            Selected: {selectedId ?? 'none'} — click empty space to clear.
+            Selected:{' '}
+            {selectedId
+              ? `furniture · ${selectedId}`
+              : selectedWallPictureId
+                ? `wall art · ${
+                    selectedWallPlaced?.imageUrl?.includes('/')
+                      ? decodeURIComponent(selectedWallPlaced.imageUrl.split('/').pop() ?? '')
+                      : selectedWallPictureId.slice(0, 8)
+                  }`
+                : 'none'}{' '}
+            — click empty space to clear.
           </p>
-          {selectedId ? (
+          {(selectedId || selectedWallPictureId) ? (
             <>
               <div className="mt-3">
                 <p className="text-xs font-medium text-stone-700">Transform</p>
@@ -158,13 +345,24 @@ export function EditHomeSidebar() {
                   ))}
                 </div>
               </div>
-              <button
-                type="button"
-                className="mt-3 text-xs text-red-700 hover:underline"
-                onClick={() => removePlaced(selectedId)}
-              >
-                Delete selected furniture
-              </button>
+              {selectedId ? (
+                <button
+                  type="button"
+                  className="mt-3 text-xs text-red-700 hover:underline"
+                  onClick={() => removePlaced(selectedId)}
+                >
+                  Delete selected furniture
+                </button>
+              ) : null}
+              {selectedWallPictureId && !selectedId ? (
+                <button
+                  type="button"
+                  className="mt-3 text-xs text-red-700 hover:underline"
+                  onClick={() => removeWallPicture(selectedWallPictureId)}
+                >
+                  Delete wall art
+                </button>
+              ) : null}
             </>
           ) : null}
         </div>

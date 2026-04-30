@@ -30,9 +30,11 @@ type Props = {
   model: LibraryModel | null
   onClose: () => void
   onPlaceInRoom: (libId: string) => void
+  /** Remove this entry from the Build list or delete the file under `public/models/user`. */
+  onRemoveFromList?: () => void | Promise<void>
 }
 
-export function LibraryModelModal({ model, onClose, onPlaceInRoom }: Props) {
+export function LibraryModelModal({ model, onClose, onPlaceInRoom, onRemoveFromList }: Props) {
   useEffect(() => {
     if (!model) return
     const onKey = (e: KeyboardEvent) => {
@@ -118,6 +120,17 @@ export function LibraryModelModal({ model, onClose, onPlaceInRoom }: Props) {
           >
             Cancel
           </button>
+          {onRemoveFromList ? (
+            <button
+              type="button"
+              className="rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-red-800 hover:bg-red-50"
+              onClick={() => {
+                void Promise.resolve(onRemoveFromList()).finally(() => onClose())
+              }}
+            >
+              Remove
+            </button>
+          ) : null}
           <button
             type="button"
             className="rounded-lg bg-stone-800 px-3 py-2 text-sm text-stone-50 hover:bg-stone-700"

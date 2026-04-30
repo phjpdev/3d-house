@@ -10,6 +10,7 @@ export function mergeWallPictures(
     kind: 'wall_frame',
     position: w.position,
     rotationY: w.rotationY,
+    rotation: w.rotation,
     width: w.width,
     height: w.height,
     imageUrl: w.imageUrl,

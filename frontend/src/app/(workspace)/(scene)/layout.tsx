@@ -16,8 +16,8 @@ export default function SceneLayout({ children }: { children: React.ReactNode })
     <div
       className={
         visit
-          ? 'relative h-[calc(100vh-4rem)] w-full overflow-hidden bg-stone-200/30'
-          : 'flex min-h-[calc(100vh-4rem)] flex-col lg:h-[calc(100vh-4rem)] lg:flex-row'
+          ? 'relative h-[calc(100vh-4rem)] w-full max-w-full overflow-hidden bg-stone-200/30'
+          : 'flex min-h-[calc(100vh-4rem)] w-full max-w-full min-w-0 flex-col overflow-x-hidden lg:h-[calc(100vh-4rem)] lg:flex-row'
       }
     >
       {children}
@@ -25,7 +25,7 @@ export default function SceneLayout({ children }: { children: React.ReactNode })
         className={
           visit
             ? 'h-full w-full'
-            : 'relative min-h-[320px] h-[58vh] w-full flex-1 bg-stone-900/5 lg:h-full lg:min-h-0'
+            : 'relative min-h-[320px] h-[58vh] min-w-0 w-full flex-1 bg-stone-900/5 lg:h-full lg:min-h-0'
         }
       >
         <VividHomeExperience mode={mode} />

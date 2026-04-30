@@ -34,6 +34,8 @@ export type WallPicture = {
   imageUrl: string
   position: [number, number, number]
   rotationY: number
+  rotation?: [number, number, number]
+  scale?: number
   width: number
   height: number
 }
@@ -41,9 +43,12 @@ export type WallPicture = {
 type State = {
   tab: AppTab
   library: LibraryModel[]
+  /** Local GLBs under `public/models/user` — not persisted; refreshed when Edit loads */
+  userModels: LibraryModel[]
   placedFurniture: PlacedFurniture[]
   wallPictures: WallPicture[]
   selectedPlacedId: string | null
+  selectedWallPictureId: string | null
   /** Visit tab: allow orbit instead of walk */
   visitUseOrbit: boolean
   /** Edit tab: TransformControls mode */
@@ -54,13 +59,21 @@ type State = {
   setTab: (t: AppTab) => void
   addLibraryModel: (m: Omit<LibraryModel, 'id' | 'createdAt'> & { id?: string }) => void
   removeLibraryModel: (id: string) => void
+  setUserModels: (models: LibraryModel[]) => void
   setPlacedFurniture: (items: PlacedFurniture[]) => void
   upsertPlaced: (item: PlacedFurniture) => void
   removePlaced: (id: string) => void
   setSelectedPlacedId: (id: string | null) => void
-  addWallPicture: (pic: Omit<WallPicture, 'id'> & { id?: string }) => void
+  setSelectedWallPictureId: (id: string | null) => void
+  addWallPicture: (pic: Omit<WallPicture, 'id'> & { id?: string }) => string
   updateWallPicture: (id: string, patch: Partial<WallPicture>) => void
   removeWallPicture: (id: string) => void
+  /** Delete every placed frame that uses this image URL (e.g. after removing the file from disk). */
+  removeWallPicturesByImageUrl: (imageUrl: string) => void
+  /** Remove furniture instances that reference a GLB URL (e.g. deleted user model file). */
+  removePlacedByModelUrl: (url: string) => void
+  /** Remove furniture spawned from a Build-tab library entry. */
+  removePlacedBySourceId: (sourceId: string) => void
   setVisitUseOrbit: (v: boolean) => void
   setEditTransformMode: (m: EditTransformMode) => void
   setLibraryPlacementPending: (libId: string | null) => void
@@ -103,9 +116,11 @@ export const useVividHomeStore = create<State>()(
     (set, get) => ({
       tab: 'build',
       library: [],
+      userModels: [],
       placedFurniture: defaultFurniture,
       wallPictures: [],
       selectedPlacedId: null,
+      selectedWallPictureId: null,
       visitUseOrbit: false,
       editTransformMode: 'translate',
       libraryPlacementPending: null,
@@ -130,6 +145,7 @@ export const useVividHomeStore = create<State>()(
         })),
       removeLibraryModel: (id) =>
         set((s) => ({ library: s.library.filter((x) => x.id !== id) })),
+      setUserModels: (userModels) => set({ userModels }),
       setPlacedFurniture: (placedFurniture) => set({ placedFurniture }),
       upsertPlaced: (item) =>
         set((s) => {
@@ -144,38 +160,92 @@ export const useVividHomeStore = create<State>()(
           placedFurniture: s.placedFurniture.filter((p) => p.id !== id),
           selectedPlacedId: s.selectedPlacedId === id ? null : s.selectedPlacedId,
         })),
-      setSelectedPlacedId: (selectedPlacedId) => set({ selectedPlacedId }),
-      addWallPicture: (pic) =>
+      setSelectedPlacedId: (selectedPlacedId) =>
+        set((s) => ({
+          selectedPlacedId,
+          ...(selectedPlacedId !== null ? { selectedWallPictureId: null as string | null } : {}),
+        })),
+      setSelectedWallPictureId: (selectedWallPictureId) =>
+        set((s) => ({
+          selectedWallPictureId,
+          ...(selectedWallPictureId !== null ? { selectedPlacedId: null as string | null } : {}),
+        })),
+      addWallPicture: (pic) => {
+        const id = pic.id ?? uuid()
         set((s) => ({
           wallPictures: [
             ...s.wallPictures,
             {
-              id: pic.id ?? uuid(),
+              id,
               imageUrl: pic.imageUrl,
               position: pic.position,
               rotationY: pic.rotationY,
+              rotation: pic.rotation,
+              scale: pic.scale,
               width: pic.width,
               height: pic.height,
             },
           ],
-        })),
+        }))
+        return id
+      },
       updateWallPicture: (id, patch) =>
         set((s) => ({
           wallPictures: s.wallPictures.map((w) => (w.id === id ? { ...w, ...patch } : w)),
         })),
       removeWallPicture: (id) =>
-        set((s) => ({ wallPictures: s.wallPictures.filter((w) => w.id !== id) })),
+        set((s) => ({
+          wallPictures: s.wallPictures.filter((w) => w.id !== id),
+          selectedWallPictureId: s.selectedWallPictureId === id ? null : s.selectedWallPictureId,
+        })),
+      removeWallPicturesByImageUrl: (imageUrl) =>
+        set((s) => {
+          const next = s.wallPictures.filter((w) => w.imageUrl !== imageUrl)
+          const removedIds = new Set(s.wallPictures.filter((w) => w.imageUrl === imageUrl).map((w) => w.id))
+          return {
+            wallPictures: next,
+            selectedWallPictureId:
+              s.selectedWallPictureId && removedIds.has(s.selectedWallPictureId)
+                ? null
+                : s.selectedWallPictureId,
+          }
+        }),
+      removePlacedByModelUrl: (url) =>
+        set((s) => {
+          const removedIds = new Set(s.placedFurniture.filter((p) => p.url === url).map((p) => p.id))
+          return {
+            placedFurniture: s.placedFurniture.filter((p) => p.url !== url),
+            selectedPlacedId:
+              s.selectedPlacedId && removedIds.has(s.selectedPlacedId)
+                ? null
+                : s.selectedPlacedId,
+          }
+        }),
+      removePlacedBySourceId: (sourceId) =>
+        set((s) => {
+          const removed = new Set(
+            s.placedFurniture.filter((p) => p.sourceId === sourceId).map((p) => p.id),
+          )
+          return {
+            placedFurniture: s.placedFurniture.filter((p) => p.sourceId !== sourceId),
+            selectedPlacedId:
+              s.selectedPlacedId && removed.has(s.selectedPlacedId) ? null : s.selectedPlacedId,
+          }
+        }),
       setVisitUseOrbit: (visitUseOrbit) => set({ visitUseOrbit }),
       setEditTransformMode: (editTransformMode) => set({ editTransformMode }),
       setLibraryPlacementPending: (libraryPlacementPending) => set({ libraryPlacementPending }),
       cancelLibraryPlacement: () => set({ libraryPlacementPending: null }),
       placeLibraryAt: (libId, position) => {
-        const lib = get().library.find((l) => l.id === libId)
+        const { library, userModels } = get()
+        const lib =
+          library.find((l) => l.id === libId) ?? userModels.find((l) => l.id === libId)
         if (!lib) return
         const id = `placed-${lib.id}-${Date.now()}`
         set((s) => ({
           libraryPlacementPending: null,
           selectedPlacedId: id,
+          selectedWallPictureId: null,
           placedFurniture: [
             ...s.placedFurniture,
             {

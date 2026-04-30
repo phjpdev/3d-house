@@ -10,6 +10,8 @@ type Props = {
   onOpen: (id: string) => void
   /** When false, pointer-out restores `auto` instead of `grab` (matches look-drag disabled). */
   pointerLookEnabled?: boolean
+  /** Edit mode: clicking the framed picture selects it for sidebar + transforms. */
+  onWallFrameSelect?: () => void
 }
 
 function useImageTexture(url: string | undefined, maxAnisotropy: number) {
@@ -164,6 +166,7 @@ export function ExhibitMesh({
   exhibit,
   onOpen,
   pointerLookEnabled = true,
+  onWallFrameSelect,
 }: Props) {
   const group = useRef<THREE.Group>(null)
   const { gl } = useThree()
@@ -220,19 +223,31 @@ export function ExhibitMesh({
   }
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
-    e.stopPropagation()
     if (lookDragSync.blockNextExhibitClick) {
       lookDragSync.blockNextExhibitClick = false
       return
     }
+    if (onWallFrameSelect) {
+      onWallFrameSelect()
+      e.stopPropagation()
+      return
+    }
+    e.stopPropagation()
     onOpen(exhibit.id)
   }
+
+  const rot = exhibit.rotation ?? [0, exhibit.rotationY ?? 0, 0]
+  const sc = exhibit.scale ?? 1
 
   return (
     <group
       ref={group}
       position={exhibit.position}
-      rotation={[0, exhibit.rotationY ?? 0, 0]}
+      rotation={rot}
+      scale={sc}
+      onClick={handleClick}
+      onPointerOver={() => setHoverCursor(canvas, pointerLookEnabled, true)}
+      onPointerOut={() => setHoverCursor(canvas, pointerLookEnabled, false)}
     >
       <mesh receiveShadow material={frameMat} position={[0, 0, -frameDepth / 2]}>
         <boxGeometry args={[w + frameT * 2, h + frameT * 2, frameDepth]} />
@@ -241,9 +256,6 @@ export function ExhibitMesh({
         receiveShadow
         material={photoMat}
         position={[0, 0, frameDepth / 2 + 0.002]}
-        onClick={handleClick}
-        onPointerOver={() => setHoverCursor(canvas, pointerLookEnabled, true)}
-        onPointerOut={() => setHoverCursor(canvas, pointerLookEnabled, false)}
       >
         <planeGeometry args={[w, h]} />
       </mesh>

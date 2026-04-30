@@ -11,7 +11,7 @@ import {
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import type { TransformControls as TransformControlsImpl } from 'three-stdlib'
 import * as THREE from 'three'
-import type { HouseConfig } from '@/types/house'
+import type { ExhibitConfig, HouseConfig } from '@/types/house'
 import demoHouse from '@/data/demo-house.json'
 import { InteriorShell } from '@/components/interior/InteriorShell'
 import { SunLight } from '@/components/interior/SunLight'
@@ -22,11 +22,11 @@ import { mergeWallPictures } from '@/lib/mergeExhibits'
 import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
 import { loadMeshyGlbViaProxy } from '@/lib/meshyGlbProxyCache'
 import { useVividHomeStore } from '@/store/vividHomeStore'
-import { useThree } from '@react-three/fiber'
-import { inWalkable, resolveWalkPosition } from '@/lib/houseLayout'
+import { useFrame, useThree } from '@react-three/fiber'
+import { clampEditCameraPosition, inWalkable, resolveWalkPosition } from '@/lib/houseLayout'
 import { VisitWalkRig } from '@/components/canvas/VisitWalkRig'
 import { RealisticEffects } from '@/components/canvas/RealisticEffects'
-import type { PlacedFurniture } from '@/store/vividHomeStore'
+import type { PlacedFurniture, WallPicture } from '@/store/vividHomeStore'
 
 const HDRI =
   'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/brown_photostudio_06_1k.hdr'
@@ -61,7 +61,58 @@ function syncPlacedFromGroup(
   })
 }
 
-const FLOOR_MESH_NAMES = new Set(['Floor', 'CorridorSouthFloor', 'CorridorEastFloor'])
+function syncWallPictureFromGroup(
+  g: THREE.Group,
+  item: WallPicture,
+  update: (id: string, patch: Partial<WallPicture>) => void,
+) {
+  const p = g.position
+  const r = g.rotation
+  const s = uniformScaleFromGroup(g)
+  update(item.id, {
+    position: [p.x, p.y, p.z],
+    rotation: [r.x, r.y, r.z],
+    rotationY: r.y,
+    scale: s,
+  })
+}
+
+function SelectableWallExhibit({
+  exhibit,
+  wallPicture,
+  mode,
+  onSelect,
+  registerWallRef,
+}: {
+  exhibit: ExhibitConfig
+  wallPicture: WallPicture
+  mode: 'edit' | 'visit'
+  onSelect: () => void
+  registerWallRef: (id: string, node: THREE.Group | null) => void
+}) {
+  return (
+    <group
+      ref={(node) => registerWallRef(wallPicture.id, node)}
+      position={wallPicture.position}
+      rotation={wallPicture.rotation ?? [0, wallPicture.rotationY, 0]}
+      scale={wallPicture.scale ?? 1}
+    >
+      <ExhibitMesh
+        exhibit={{
+          ...exhibit,
+          position: [0, 0, 0],
+          rotationY: 0,
+          rotation: [0, 0, 0],
+        }}
+        onOpen={() => {}}
+        pointerLookEnabled={false}
+        onWallFrameSelect={mode === 'edit' ? onSelect : undefined}
+      />
+    </group>
+  )
+}
+
+const FLOOR_MESH_NAMES = new Set(['Floor', 'CorridorSouthFloor'])
 
 function isFloorMesh(obj: THREE.Object3D): boolean {
   return Boolean(obj.name && FLOOR_MESH_NAMES.has(obj.name))
@@ -103,13 +154,26 @@ function FloorPlacementHandler({
   return null
 }
 
+/** Run after OrbitControls so drag/zoom cannot leave the interior (walls are single-sided). */
+function EditCameraInteriorClamp({ active }: { active: boolean }) {
+  const camera = useThree((s) => s.camera)
+  useFrame(() => {
+    if (!active) return
+    clampEditCameraPosition(camera.position)
+  }, 1)
+  return null
+}
+
 export function SceneContents({ mode }: Props) {
   const house = demoHouse as unknown as HouseConfig
   const placed = useVividHomeStore((s) => s.placedFurniture)
   const wallPictures = useVividHomeStore((s) => s.wallPictures)
   const selectedId = useVividHomeStore((s) => s.selectedPlacedId)
+  const selectedWallPictureId = useVividHomeStore((s) => s.selectedWallPictureId)
   const setSelected = useVividHomeStore((s) => s.setSelectedPlacedId)
+  const setSelectedWallPicture = useVividHomeStore((s) => s.setSelectedWallPictureId)
   const upsert = useVividHomeStore((s) => s.upsertPlaced)
+  const updateWallPicture = useVividHomeStore((s) => s.updateWallPicture)
   const visitOrbit = useVividHomeStore((s) => s.visitUseOrbit)
   const editTransformMode = useVividHomeStore((s) => s.editTransformMode)
   const libraryPlacementPending = useVividHomeStore((s) => s.libraryPlacementPending)
@@ -124,7 +188,9 @@ export function SceneContents({ mode }: Props) {
   )
 
   const objectRefs = useRef<Map<string, THREE.Group>>(new Map())
+  const wallObjectRefs = useRef<Map<string, THREE.Group>>(new Map())
   const [transformTarget, setTransformTarget] = useState<THREE.Group | null>(null)
+  const [wallTransformTarget, setWallTransformTarget] = useState<THREE.Group | null>(null)
   const editOrbitRef = useRef<OrbitControlsImpl | null>(null)
   const visitOrbitRef = useRef<OrbitControlsImpl | null>(null)
   const transformControlsRef = useRef<TransformControlsImpl | null>(null)
@@ -134,6 +200,13 @@ export function SceneContents({ mode }: Props) {
     () => mergeWallPictures(house.exhibits, wallPictures),
     [house.exhibits, wallPictures],
   )
+
+  const wallPictureIds = useMemo(() => new Set(wallPictures.map((w) => w.id)), [wallPictures])
+
+  const registerWallRef = useCallback((id: string, node: THREE.Group | null) => {
+    if (node) wallObjectRefs.current.set(id, node)
+    else wallObjectRefs.current.delete(id)
+  }, [])
 
   useEffect(() => {
     for (const u of new Set(placed.map((p) => p.url))) {
@@ -154,16 +227,26 @@ export function SceneContents({ mode }: Props) {
     setTransformTarget(g ?? null)
   }, [selectedId, placed, mode])
 
+  useEffect(() => {
+    if (!selectedWallPictureId || mode !== 'edit') {
+      setWallTransformTarget(null)
+      return
+    }
+    const g = wallObjectRefs.current.get(selectedWallPictureId)
+    setWallTransformTarget(g ?? null)
+  }, [selectedWallPictureId, wallPictures, mode])
+
   const selectedItem = placed.find((p) => p.id === selectedId)
+  const selectedWallPictureItem = wallPictures.find((w) => w.id === selectedWallPictureId)
 
   /** Orbit must stay enabled whenever nothing is selected, or after transform unmounts mid-drag. */
   useEffect(() => {
     if (mode !== 'edit') return
-    if (!selectedId && editOrbitRef.current) {
+    if (!selectedId && !selectedWallPictureId && editOrbitRef.current) {
       const pending = useVividHomeStore.getState().libraryPlacementPending
       if (!pending) editOrbitRef.current.enabled = true
     }
-  }, [mode, selectedId, libraryPlacementPending])
+  }, [mode, selectedId, selectedWallPictureId, libraryPlacementPending])
 
   /** Disable orbit while placing from library (floor click). */
   useEffect(() => {
@@ -202,7 +285,7 @@ export function SceneContents({ mode }: Props) {
     return () => {
       tcEvents.removeEventListener('dragging-changed', onDraggingChanged)
     }
-  }, [mode, selectedId, transformTarget])
+  }, [mode, selectedId, selectedWallPictureId, transformTarget, wallTransformTarget])
 
   return (
     <>
@@ -242,14 +325,29 @@ export function SceneContents({ mode }: Props) {
         )
       })}
 
-      {exhibits.map((ex) => (
-        <ExhibitMesh
-          key={ex.id}
-          exhibit={ex}
-          onOpen={() => {}}
-          pointerLookEnabled={false}
-        />
-      ))}
+      {exhibits.map((ex) => {
+        const wp = wallPictures.find((w) => w.id === ex.id)
+        if (wp && wallPictureIds.has(ex.id)) {
+          return (
+            <SelectableWallExhibit
+              key={ex.id}
+              exhibit={ex}
+              wallPicture={wp}
+              mode={mode}
+              onSelect={() => setSelectedWallPicture(ex.id)}
+              registerWallRef={registerWallRef}
+            />
+          )
+        }
+        return (
+          <ExhibitMesh
+            key={ex.id}
+            exhibit={ex}
+            onOpen={() => {}}
+            pointerLookEnabled={false}
+          />
+        )
+      })}
 
       <ContactShadows
         position={[0, 0.002, 0]}
@@ -261,10 +359,23 @@ export function SceneContents({ mode }: Props) {
         color="#14100c"
       />
 
+      {mode === 'edit' && selectedWallPictureItem && wallTransformTarget ? (
+        <TransformControls
+          ref={transformControlsRef}
+          key={`wall-${selectedWallPictureId ?? 'none'}`}
+          object={wallTransformTarget}
+          mode={editTransformMode}
+          onMouseUp={() => {
+            if (wallTransformTarget && selectedWallPictureItem)
+              syncWallPictureFromGroup(wallTransformTarget, selectedWallPictureItem, updateWallPicture)
+          }}
+        />
+      ) : null}
+
       {mode === 'edit' && selectedItem && transformTarget ? (
         <TransformControls
           ref={transformControlsRef}
-          key={selectedId ?? 'none'}
+          key={`fur-${selectedId ?? 'none'}`}
           object={transformTarget}
           mode={editTransformMode}
           onMouseUp={() => {
@@ -279,19 +390,23 @@ export function SceneContents({ mode }: Props) {
       ) : null}
 
       {mode === 'edit' ? (
-        <OrbitControls
-          ref={editOrbitRef}
-          makeDefault
-          enableDamping
-          dampingFactor={0.14}
-          rotateSpeed={1.45}
-          zoomSpeed={1.2}
-          minDistance={1.4}
-          maxDistance={16}
-          maxPolarAngle={Math.PI / 2 - 0.06}
-          minPolarAngle={0.38}
-          target={[0, 1.15, -1.2]}
-        />
+        <>
+          <EditCameraInteriorClamp active />
+          <OrbitControls
+            ref={editOrbitRef}
+            makeDefault
+            enableDamping
+            enablePan={false}
+            dampingFactor={0.14}
+            rotateSpeed={1.45}
+            zoomSpeed={1.2}
+            minDistance={1.4}
+            maxDistance={12}
+            maxPolarAngle={Math.PI / 2 - 0.06}
+            minPolarAngle={0.38}
+            target={[0, 1.15, -1.2]}
+          />
+        </>
       ) : null}
 
       {mode === 'visit' && !visitOrbit ? (

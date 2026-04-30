@@ -15,7 +15,8 @@ type Props = {
 const CAM = { fov: 52, near: 0.08, far: 90 } as const
 
 export function VividHomeExperience({ mode, className }: Props) {
-  const clearSelection = useVividHomeStore((s) => s.setSelectedPlacedId)
+  const clearFurnitureSelection = useVividHomeStore((s) => s.setSelectedPlacedId)
+  const clearWallSelection = useVividHomeStore((s) => s.setSelectedWallPictureId)
   const libraryPlacementPending = useVividHomeStore((s) => s.libraryPlacementPending)
 
   return (
@@ -32,13 +33,14 @@ export function VividHomeExperience({ mode, className }: Props) {
         className="block h-full w-full touch-none"
         style={{ width: '100%', height: '100%' }}
         shadows
-        dpr={[1, 1.35]}
+        dpr={[1, 2]}
         camera={CAM}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => configureRenderer(gl)}
         onPointerMissed={() => {
           if (libraryPlacementPending) return
-          clearSelection(null)
+          clearFurnitureSelection(null)
+          clearWallSelection(null)
         }}
       >
         <Suspense fallback={null}>

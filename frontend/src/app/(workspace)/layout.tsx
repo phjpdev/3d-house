@@ -31,7 +31,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-stone-100 pt-16 text-stone-900">
       <Navbar />
-      <main className="relative">{children}</main>
+      <main className="relative min-w-0 overflow-x-hidden">{children}</main>
     </div>
   )
 }

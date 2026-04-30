@@ -24,6 +24,10 @@ export interface ExhibitConfig {
   /** World-space meters, Y up */
   position: [number, number, number]
   rotationY?: number
+  /** Full euler when present (overrides rotationY for wall frames) */
+  rotation?: [number, number, number]
+  /** Uniform scale for framed exhibits */
+  scale?: number
   /** Frame / print width in meters */
   width?: number
   height?: number
