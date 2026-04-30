@@ -1,0 +1,51 @@
+{
+  "id": "demo",
+  "name": "Sunridge residence",
+  "tagline": "Living room, corridors, and daylight — curated with VividHome.",
+  "roomGltfUrl": null,
+  "builtInDesk": true,
+  "furniture": [],
+  "spawn": {
+    "position": [0, 0, 2.2],
+    "rotationY": 0
+  },
+  "backgroundMusicUrl": null,
+  "exhibits": [
+    {
+      "id": "wall-1",
+      "kind": "wall_frame",
+      "position": [-2.2, 1.45, -3.74],
+      "rotationY": 0,
+      "width": 0.95,
+      "height": 0.72,
+      "imageUrl": "https://picsum.photos/seed/memory-a/800/600",
+      "title": "Sunday kitchen",
+      "caption": "A calm morning before everyone arrived.",
+      "audioUrl": null
+    },
+    {
+      "id": "wall-2",
+      "kind": "wall_frame",
+      "position": [0, 1.55, -3.74],
+      "rotationY": 0,
+      "width": 1.15,
+      "height": 0.86,
+      "imageUrl": "https://picsum.photos/seed/memory-b/800/600",
+      "title": "The long hallway",
+      "caption": "Measured seasons against this frame.",
+      "audioUrl": null
+    },
+    {
+      "id": "desk-1",
+      "kind": "desk_photo",
+      "position": [2.35, 0.92, -0.9],
+      "rotationY": -0.35,
+      "width": 0.28,
+      "height": 0.35,
+      "imageUrl": "https://picsum.photos/seed/memory-c/600/800",
+      "title": "On the desk",
+      "caption": "Resting where hands would find it.",
+      "audioUrl": null
+    }
+  ]
+}
