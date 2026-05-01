@@ -8,8 +8,8 @@ import { KeyboardTracker } from '@/components/interior/FirstPersonRig'
 
 const SPEED = 3.35
 const EYE = 1.7
-/** Pointer-lock look — slightly higher than vanilla FPS so explore mode feels responsive. */
-const LOOK_SENS = 0.004
+/** Pointer-lock look — match a comfortable desktop FPS feel on varied DPI. */
+const LOOK_SENS = 0.0052
 const PITCH_MIN = -1.2
 const PITCH_MAX = 1.25
 

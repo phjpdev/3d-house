@@ -64,6 +64,13 @@ const INTERIOR_ORBIT_MIN_DISTANCE = 1.08
 const INTERIOR_ORBIT_MAX_DISTANCE_EDIT = 220
 const INTERIOR_ORBIT_MAX_DISTANCE_VISIT = 240
 
+/** Edit + visit share the same orbit feel; higher speeds avoid a “slow mouse” feel on large interiors. */
+const INTERIOR_ORBIT_SPEED = {
+  rotateSpeed: 0.78,
+  panSpeed: 0.82,
+  zoomSpeed: 1.25,
+} as const
+
 /** Matches Coohom-style overlay ring / drei TransformControls sizing */
 const EDIT_GIZMO_SIZE = 1.06
 
@@ -575,9 +582,7 @@ export function SceneContents({ mode }: Props) {
             enablePan
             screenSpacePanning
             mouseButtons={INTERIOR_ORBIT_MOUSE_BUTTONS}
-            panSpeed={0.65}
-            rotateSpeed={0.52}
-            zoomSpeed={1.2}
+            {...INTERIOR_ORBIT_SPEED}
             minDistance={INTERIOR_ORBIT_MIN_DISTANCE}
             maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_EDIT}
             maxPolarAngle={INTERIOR_ORBIT_MAX_POLAR}
@@ -606,9 +611,7 @@ export function SceneContents({ mode }: Props) {
             enablePan
             screenSpacePanning
             mouseButtons={INTERIOR_ORBIT_MOUSE_BUTTONS}
-            panSpeed={0.65}
-            rotateSpeed={0.52}
-            zoomSpeed={1.2}
+            {...INTERIOR_ORBIT_SPEED}
             minDistance={INTERIOR_ORBIT_MIN_DISTANCE}
             maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_VISIT}
             maxPolarAngle={INTERIOR_ORBIT_MAX_POLAR}
