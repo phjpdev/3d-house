@@ -8,9 +8,16 @@ const MODELS_DIR = join(process.cwd(), 'public', 'models')
 const MAX_MODEL_BYTES = 52 * 1024 * 1024
 
 function safeModelBasename(name: string): string | null {
-  const base = name.replace(/\\/g, '/').split('/').pop() ?? ''
+  let base = name.replace(/\\/g, '/').split('/').pop() ?? ''
+  try {
+    base = decodeURIComponent(base.trim())
+  } catch {
+    return null
+  }
   if (!base || base.includes('..') || !/\.(glb|gltf)$/i.test(base)) return null
-  if (!/^[a-zA-Z0-9._-]+$/.test(base)) return null
+  // Allow spaces (e.g. `gaming chair.glb`); block traversal, separators, control chars, and
+  // characters that are invalid or awkward on Windows/macOS/Linux filenames.
+  if (/[/\\:\x00-\x1f<>:"|?*]/.test(base)) return null
   return base
 }
 
