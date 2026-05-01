@@ -41,6 +41,13 @@ export type WallPicture = {
   height: number
 }
 
+/** Pending “click a wall” placement after choosing a photo in the modal */
+export type WallArtPlacementPending = {
+  imageUrl: string
+  width: number
+  height: number
+}
+
 type State = {
   tab: AppTab
   library: LibraryModel[]
@@ -56,6 +63,8 @@ type State = {
   editTransformMode: EditTransformMode
   /** Edit tab: next floor click places this library model */
   libraryPlacementPending: string | null
+  /** Edit tab: after “Place in home” on a photo, next wall click mounts the frame */
+  wallArtPlacementPending: WallArtPlacementPending | null
 
   /** Edit tab: orbit focus — main room vs south corridor */
   editStructureZone: EditStructureZone
@@ -83,6 +92,10 @@ type State = {
   setEditTransformMode: (m: EditTransformMode) => void
   setLibraryPlacementPending: (libId: string | null) => void
   cancelLibraryPlacement: () => void
+  beginWallArtPlacement: (p: WallArtPlacementPending) => void
+  cancelWallArtPlacement: () => void
+  /** Commit pending wall art at ray hit; selects the new frame */
+  completeWallArtPlacement: (position: [number, number, number], rotationY: number) => void
   /** Spawn library model at floor position (meters), select it, clear placement mode */
   placeLibraryAt: (libId: string, position: [number, number, number]) => void
 }
@@ -134,6 +147,7 @@ export const useVividHomeStore = create<State>()(
       visitUseOrbit: false,
       editTransformMode: 'translate',
       libraryPlacementPending: null,
+      wallArtPlacementPending: null,
       editStructureZone: 'room' as EditStructureZone,
 
       setTab: (tab) => set({ tab }),
@@ -246,8 +260,39 @@ export const useVividHomeStore = create<State>()(
       setVisitUseOrbit: (visitUseOrbit) => set({ visitUseOrbit }),
       setEditTransformMode: (editTransformMode) => set({ editTransformMode }),
       setEditStructureZone: (editStructureZone) => set({ editStructureZone }),
-      setLibraryPlacementPending: (libraryPlacementPending) => set({ libraryPlacementPending }),
+      setLibraryPlacementPending: (libraryPlacementPending) =>
+        set({
+          libraryPlacementPending,
+          ...(libraryPlacementPending !== null ? { wallArtPlacementPending: null as null } : {}),
+        }),
       cancelLibraryPlacement: () => set({ libraryPlacementPending: null }),
+      beginWallArtPlacement: (wallArtPlacementPending) =>
+        set({
+          wallArtPlacementPending,
+          libraryPlacementPending: null,
+        }),
+      cancelWallArtPlacement: () => set({ wallArtPlacementPending: null }),
+      completeWallArtPlacement: (position, rotationY) => {
+        const pending = get().wallArtPlacementPending
+        if (!pending) return
+        const id = uuid()
+        set((s) => ({
+          wallArtPlacementPending: null,
+          selectedPlacedId: null,
+          selectedWallPictureId: id,
+          wallPictures: [
+            ...s.wallPictures,
+            {
+              id,
+              imageUrl: pending.imageUrl,
+              position,
+              rotationY,
+              width: pending.width,
+              height: pending.height,
+            },
+          ],
+        }))
+      },
       placeLibraryAt: (libId, position) => {
         const { library, userModels } = get()
         const lib =
@@ -256,6 +301,7 @@ export const useVividHomeStore = create<State>()(
         const id = `placed-${lib.id}-${Date.now()}`
         set((s) => ({
           libraryPlacementPending: null,
+          wallArtPlacementPending: null,
           selectedPlacedId: id,
           selectedWallPictureId: null,
           placedFurniture: [

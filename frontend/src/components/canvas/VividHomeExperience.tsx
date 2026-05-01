@@ -18,12 +18,15 @@ export function VividHomeExperience({ mode, className }: Props) {
   const clearFurnitureSelection = useVividHomeStore((s) => s.setSelectedPlacedId)
   const clearWallSelection = useVividHomeStore((s) => s.setSelectedWallPictureId)
   const libraryPlacementPending = useVividHomeStore((s) => s.libraryPlacementPending)
+  const wallArtPlacementPending = useVividHomeStore((s) => s.wallArtPlacementPending)
+  const placementCursor =
+    mode === 'edit' && (libraryPlacementPending || wallArtPlacementPending)
 
   return (
     <div
       className={[
         'h-full w-full',
-        libraryPlacementPending && mode === 'edit' ? 'cursor-crosshair' : '',
+        placementCursor ? 'cursor-crosshair' : '',
         className,
       ]
         .filter(Boolean)
@@ -38,7 +41,7 @@ export function VividHomeExperience({ mode, className }: Props) {
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         onCreated={({ gl }) => configureRenderer(gl)}
         onPointerMissed={() => {
-          if (libraryPlacementPending) return
+          if (libraryPlacementPending || wallArtPlacementPending) return
           clearFurnitureSelection(null)
           clearWallSelection(null)
         }}

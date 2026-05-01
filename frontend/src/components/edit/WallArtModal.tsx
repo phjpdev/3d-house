@@ -64,8 +64,8 @@ export function WallArtModal({ photo, onClose, onRemoveFromDisk, onPlaceInHome }
 
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-stone-200 px-5 py-4">
           <p className="mr-auto max-w-[58%] text-sm text-stone-600">
-            Place in home adds this picture to the wall. Then use Move / Rotate / Scale in the sidebar,
-            and drag the handles in the scene.
+            Next step: close this dialog, then click the wall in the 3D scene where the frame should go.
+            Press Esc to cancel. You can move or rotate the frame afterward with the gizmo.
           </p>
           <button
             type="button"

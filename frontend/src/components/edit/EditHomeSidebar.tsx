@@ -27,7 +27,9 @@ export function EditHomeSidebar() {
   const setLibraryPlacementPending = useVividHomeStore((s) => s.setLibraryPlacementPending)
   const cancelLibraryPlacement = useVividHomeStore((s) => s.cancelLibraryPlacement)
   const libraryPlacementPending = useVividHomeStore((s) => s.libraryPlacementPending)
-  const addWallPicture = useVividHomeStore((s) => s.addWallPicture)
+  const beginWallArtPlacement = useVividHomeStore((s) => s.beginWallArtPlacement)
+  const cancelWallArtPlacement = useVividHomeStore((s) => s.cancelWallArtPlacement)
+  const wallArtPlacementPending = useVividHomeStore((s) => s.wallArtPlacementPending)
   const removeWallPicture = useVividHomeStore((s) => s.removeWallPicture)
   const removeWallPicturesByImageUrl = useVividHomeStore((s) => s.removeWallPicturesByImageUrl)
   const removeLibraryModel = useVividHomeStore((s) => s.removeLibraryModel)
@@ -190,14 +192,11 @@ export function EditHomeSidebar() {
         onPlaceInHome={() => {
           const p = modalWallPhoto
           if (!p) return
-          const id = addWallPicture({
+          beginWallArtPlacement({
             imageUrl: p.url,
-            position: [-1.6, 1.48, -3.74],
-            rotationY: 0,
             width: 0.72,
             height: 0.56,
           })
-          setSelectedWallPictureId(id)
         }}
       />
 
@@ -266,6 +265,19 @@ export function EditHomeSidebar() {
               type="button"
               className="mt-2 text-amber-900 underline decoration-amber-800/60 hover:decoration-amber-900"
               onClick={() => cancelLibraryPlacement()}
+            >
+              Cancel placement
+            </button>
+          </div>
+        ) : null}
+
+        {wallArtPlacementPending ? (
+          <div className="mt-3 shrink-0 rounded-lg border border-sky-300/80 bg-sky-50 px-3 py-2 text-xs text-sky-950">
+            <p className="font-medium">Click a wall in the 3D view to hang this picture.</p>
+            <button
+              type="button"
+              className="mt-2 text-sky-900 underline decoration-sky-800/60 hover:decoration-sky-900"
+              onClick={() => cancelWallArtPlacement()}
             >
               Cancel placement
             </button>
@@ -366,7 +378,8 @@ export function EditHomeSidebar() {
             <>
               <p className="text-xs text-stone-600">
                 Images in <span className="font-mono text-[11px]">public/photos</span>. Upload, open a
-                thumbnail, Place in home. Click a frame in the scene to select — works from either tab.
+                thumbnail, then <span className="font-medium">Place in home</span> and click the wall where
+                you want the frame. Press Esc to cancel placement. Click a frame in the scene to select it.
               </p>
               <input
                 ref={photoFileRef}

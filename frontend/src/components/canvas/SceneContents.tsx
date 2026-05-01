@@ -38,7 +38,8 @@ import {
   CoohomWallEditOverlay,
   useApplyCoohomTransformTheme,
 } from '@/components/canvas/CoohomFurnitureEditOverlay'
-import type { PlacedFurniture, WallPicture } from '@/store/vividHomeStore'
+import type { PlacedFurniture, WallArtPlacementPending, WallPicture } from '@/store/vividHomeStore'
+import { wallPicturePlacementFromHit } from '@/lib/wallPicturePlacement'
 
 const HDRI =
   'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/brown_photostudio_06_1k.hdr'
@@ -149,6 +150,41 @@ const FLOOR_MESH_NAMES = new Set(['Floor', 'CorridorSouthFloor'])
 
 function isFloorMesh(obj: THREE.Object3D): boolean {
   return Boolean(obj.name && FLOOR_MESH_NAMES.has(obj.name))
+}
+
+function WallPlacementHandler({
+  pending,
+  onPlace,
+}: {
+  pending: WallArtPlacementPending | null
+  onPlace: (pos: [number, number, number], rotationY: number) => void
+}) {
+  const { camera, gl, scene } = useThree()
+  useEffect(() => {
+    if (!pending) return
+    const el = gl.domElement
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.button !== 0) return
+      const rect = el.getBoundingClientRect()
+      const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1
+      const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1
+      const raycaster = new THREE.Raycaster()
+      raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera)
+      const hits = raycaster.intersectObjects(scene.children, true)
+      for (const h of hits) {
+        const placed = wallPicturePlacementFromHit(h, camera)
+        if (placed) {
+          e.preventDefault()
+          e.stopPropagation()
+          onPlace(placed.position, placed.rotationY)
+          return
+        }
+      }
+    }
+    el.addEventListener('pointerdown', onPointerDown, { capture: true })
+    return () => el.removeEventListener('pointerdown', onPointerDown, { capture: true })
+  }, [pending, camera, gl, scene, onPlace])
+  return null
 }
 
 function FloorPlacementHandler({
@@ -270,15 +306,25 @@ export function SceneContents({ mode }: Props) {
   const visitOrbit = useVividHomeStore((s) => s.visitUseOrbit)
   const editTransformMode = useVividHomeStore((s) => s.editTransformMode)
   const libraryPlacementPending = useVividHomeStore((s) => s.libraryPlacementPending)
+  const wallArtPlacementPending = useVividHomeStore((s) => s.wallArtPlacementPending)
   const editStructureZone = useVividHomeStore((s) => s.editStructureZone)
   const placeLibraryAt = useVividHomeStore((s) => s.placeLibraryAt)
   const cancelLibraryPlacement = useVividHomeStore((s) => s.cancelLibraryPlacement)
+  const cancelWallArtPlacement = useVividHomeStore((s) => s.cancelWallArtPlacement)
+  const completeWallArtPlacement = useVividHomeStore((s) => s.completeWallArtPlacement)
 
   const onFloorPlace = useCallback(
     (libId: string, pos: [number, number, number]) => {
       placeLibraryAt(libId, pos)
     },
     [placeLibraryAt],
+  )
+
+  const onWallArtPlace = useCallback(
+    (pos: [number, number, number], rotationY: number) => {
+      completeWallArtPlacement(pos, rotationY)
+    },
+    [completeWallArtPlacement],
   )
 
   const objectRefs = useRef<Map<string, THREE.Group>>(new Map())
@@ -343,28 +389,36 @@ export function SceneContents({ mode }: Props) {
   useEffect(() => {
     if (mode !== 'edit') return
     if (!selectedId && !selectedWallPictureId && editOrbitRef.current) {
-      const pending = useVividHomeStore.getState().libraryPlacementPending
-      if (!pending) editOrbitRef.current.enabled = true
+      const st = useVividHomeStore.getState()
+      if (!st.libraryPlacementPending && !st.wallArtPlacementPending) editOrbitRef.current.enabled = true
     }
-  }, [mode, selectedId, selectedWallPictureId, libraryPlacementPending])
+  }, [mode, selectedId, selectedWallPictureId, libraryPlacementPending, wallArtPlacementPending])
 
-  /** Disable orbit while placing from library (floor click). */
+  /** Disable orbit while placing furniture (floor) or wall art (wall click). */
   useEffect(() => {
     if (mode !== 'edit') return
     const orbit = editOrbitRef.current
     if (!orbit) return
-    orbit.enabled = !libraryPlacementPending
-  }, [mode, libraryPlacementPending])
+    orbit.enabled = !libraryPlacementPending && !wallArtPlacementPending
+  }, [mode, libraryPlacementPending, wallArtPlacementPending])
 
-  /** Escape cancels library placement mode */
+  /** Escape cancels placement modes */
   useEffect(() => {
-    if (!libraryPlacementPending) return
+    if (!libraryPlacementPending && !wallArtPlacementPending) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') cancelLibraryPlacement()
+      if (e.key === 'Escape') {
+        cancelLibraryPlacement()
+        cancelWallArtPlacement()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [libraryPlacementPending, cancelLibraryPlacement])
+  }, [
+    libraryPlacementPending,
+    wallArtPlacementPending,
+    cancelLibraryPlacement,
+    cancelWallArtPlacement,
+  ])
 
   /** Keep orbit tied to the same ref drei uses for `makeDefault` (avoids stuck `enabled: false`). */
   useEffect(() => {
@@ -378,8 +432,8 @@ export function SceneContents({ mode }: Props) {
     const onDraggingChanged = (e: THREE.Event & { value?: boolean }) => {
       const orbit = editOrbitRef.current
       if (!orbit || typeof e.value !== 'boolean') return
-      const pending = useVividHomeStore.getState().libraryPlacementPending
-      orbit.enabled = !e.value && !pending
+      const st = useVividHomeStore.getState()
+      orbit.enabled = !e.value && !st.libraryPlacementPending && !st.wallArtPlacementPending
     }
     tcEvents.addEventListener('dragging-changed', onDraggingChanged)
     return () => {
@@ -503,7 +557,10 @@ export function SceneContents({ mode }: Props) {
       ) : null}
 
       {mode === 'edit' ? (
-        <FloorPlacementHandler pendingLibId={libraryPlacementPending} onPlace={onFloorPlace} />
+        <>
+          <WallPlacementHandler pending={wallArtPlacementPending} onPlace={onWallArtPlace} />
+          <FloorPlacementHandler pendingLibId={libraryPlacementPending} onPlace={onFloorPlace} />
+        </>
       ) : null}
 
       {mode === 'edit' ? (
