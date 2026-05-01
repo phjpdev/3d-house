@@ -24,7 +24,9 @@ import { loadMeshyGlbViaProxy } from '@/lib/meshyGlbProxyCache'
 import { useVividHomeStore } from '@/store/vividHomeStore'
 import { useFrame, useThree } from '@react-three/fiber'
 import {
-  clampEditCameraPosition,
+  CORRIDOR,
+  CORRIDOR_EDIT_MIN_ORBIT_DISTANCE,
+  ROOM,
   clampEditOrbitTarget,
   inWalkable,
   resolveWalkPosition,
@@ -32,6 +34,7 @@ import {
 import { applyEditStructurePreset } from '@/lib/editOrbitPresets'
 import type { EditStructureZone } from '@/lib/editOrbitPresets'
 import { VisitWalkRig } from '@/components/canvas/VisitWalkRig'
+import { CoohomOrbitRightDrag } from '@/components/canvas/CoohomOrbitRightDrag'
 import { RealisticEffects } from '@/components/canvas/RealisticEffects'
 import {
   CoohomFurnitureEditOverlay,
@@ -46,28 +49,34 @@ const HDRI =
 
 const INTERIOR_BG = '#ddd6cc'
 
+/** Built-in OrbitControls action for RMB — disabled here; `CoohomOrbitRightDrag` handles RMB. */
+const MOUSE_RIGHT_ORBIT_DISABLED = -1 as unknown as THREE.MOUSE
+
 /**
- * Coohom-style 3D navigation (see Coohom help “How to Use 2D/3D View?”):
- * left drag — rotate, right drag — pan, scroll wheel — zoom.
+ * Coohom-style 3D navigation (e.g. [Coohom BIM](https://www.coohom.com/pub/tool/bim/cloud)):
+ * left drag — orbit, right drag — horizontal pan + vertical dolly forward/back, MMB / wheel — dolly.
  */
 const INTERIOR_ORBIT_MOUSE_BUTTONS = {
   LEFT: THREE.MOUSE.ROTATE,
   MIDDLE: THREE.MOUSE.DOLLY,
-  RIGHT: THREE.MOUSE.PAN,
+  RIGHT: MOUSE_RIGHT_ORBIT_DISABLED,
 } as const
 
-/** Standing-height orbit: free yaw; pitch bounded so you don’t flip under furniture. */
-const INTERIOR_ORBIT_MIN_POLAR = 0.28
-const INTERIOR_ORBIT_MAX_POLAR = Math.PI / 2 - 0.035
-/** Minimum camera–pivot radius for orbit + wheel / MMB dolly zoom. */
+/**
+ * Polar angle (three.js spherical φ from +Y): allow past horizontal so you can tilt up to ceilings;
+ * keep min low enough to look down toward corridor openings from the room.
+ */
+const INTERIOR_ORBIT_MIN_POLAR = 0.06
+const INTERIOR_ORBIT_MAX_POLAR = Math.PI - 0.38
+/** Minimum camera–pivot radius in main room; corridor uses a tighter min (narrow throat). */
 const INTERIOR_ORBIT_MIN_DISTANCE = 1.08
 const INTERIOR_ORBIT_MAX_DISTANCE_EDIT = 220
 const INTERIOR_ORBIT_MAX_DISTANCE_VISIT = 240
 
-/** Edit + visit share the same orbit feel; higher speeds avoid a “slow mouse” feel on large interiors. */
+/** Edit + visit share the same orbit feel. Pan matches Coohom-style right-drag (distance-scaled in three.js). */
 const INTERIOR_ORBIT_SPEED = {
   rotateSpeed: 0.78,
-  panSpeed: 0.82,
+  panSpeed: 1.22,
   zoomSpeed: 1.25,
 } as const
 
@@ -272,7 +281,14 @@ function InteriorOrbitLimits({
     if (!active) return
     const oc = orbitRef.current
     if (!oc) return
-    oc.minDistance = INTERIOR_ORBIT_MIN_DISTANCE
+    const z = oc.target.z
+    const inCorridorLeg =
+      z > ROOM.half + 0.06 &&
+      z <= ROOM.half + CORRIDOR.southLen + 0.45 &&
+      Math.abs(oc.target.x) <= CORRIDOR.halfW + 0.5
+    oc.minDistance = inCorridorLeg
+      ? Math.max(INTERIOR_ORBIT_MIN_DISTANCE, CORRIDOR_EDIT_MIN_ORBIT_DISTANCE)
+      : INTERIOR_ORBIT_MIN_DISTANCE
     oc.maxDistance = maxDistance
     oc.minPolarAngle = INTERIOR_ORBIT_MIN_POLAR
     oc.maxPolarAngle = INTERIOR_ORBIT_MAX_POLAR
@@ -280,7 +296,9 @@ function InteriorOrbitLimits({
   return null
 }
 
-/** Every frame: keep pivot + camera inside the procedural shell so rotation never drifts into void. */
+/** Every frame: clamp orbit pivot to workspace, then `controls.update()` so camera stays consistent with spherical orbit.
+ * Never clamp the camera position directly — that breaks orbit math and left-drag looks like panning.
+ */
 function InteriorShellClamp({
   active,
   orbitRef,
@@ -288,14 +306,12 @@ function InteriorShellClamp({
   active: boolean
   orbitRef: RefObject<OrbitControlsImpl | null>
 }) {
-  const camera = useThree((s) => s.camera)
   useFrame(() => {
     if (!active) return
     const oc = orbitRef.current
     if (!oc?.target) return
     clampEditOrbitTarget(oc.target)
     oc.update()
-    clampEditCameraPosition(camera.position)
   }, 2)
   return null
 }
@@ -575,6 +591,7 @@ export function SceneContents({ mode }: Props) {
           <EditOrbitStructureSync zone={editStructureZone} orbitRef={editOrbitRef} enabled />
           <InteriorOrbitLimits active orbitRef={editOrbitRef} maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_EDIT} />
           <InteriorShellClamp active orbitRef={editOrbitRef} />
+          <CoohomOrbitRightDrag orbitRef={editOrbitRef} active />
           <OrbitControls
             ref={editOrbitRef}
             makeDefault
@@ -587,7 +604,6 @@ export function SceneContents({ mode }: Props) {
             maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_EDIT}
             maxPolarAngle={INTERIOR_ORBIT_MAX_POLAR}
             minPolarAngle={INTERIOR_ORBIT_MIN_POLAR}
-            target={[0, 1.15, -1.2]}
           />
         </>
       ) : null}
@@ -598,12 +614,14 @@ export function SceneContents({ mode }: Props) {
 
       {mode === 'visit' && visitOrbit ? (
         <>
+          <EditOrbitStructureSync zone="room" orbitRef={visitOrbitRef} enabled />
           <InteriorOrbitLimits
             active
             orbitRef={visitOrbitRef}
             maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_VISIT}
           />
           <InteriorShellClamp active orbitRef={visitOrbitRef} />
+          <CoohomOrbitRightDrag orbitRef={visitOrbitRef} active />
           <OrbitControls
             ref={visitOrbitRef}
             makeDefault
@@ -616,7 +634,6 @@ export function SceneContents({ mode }: Props) {
             maxDistance={INTERIOR_ORBIT_MAX_DISTANCE_VISIT}
             maxPolarAngle={INTERIOR_ORBIT_MAX_POLAR}
             minPolarAngle={INTERIOR_ORBIT_MIN_POLAR}
-            target={[0, 1.15, -1.2]}
           />
         </>
       ) : null}

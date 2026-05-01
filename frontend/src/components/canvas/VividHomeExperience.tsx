@@ -31,6 +31,7 @@ export function VividHomeExperience({ mode, className }: Props) {
       ]
         .filter(Boolean)
         .join(' ')}
+      onContextMenu={(e) => e.preventDefault()}
     >
       <Canvas
         className="block h-full w-full touch-none"

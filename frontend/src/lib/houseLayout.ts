@@ -65,44 +65,32 @@ export function resolveWalkPosition(
   return [ox, oz]
 }
 
-/** Clearance from inner wall planes so the camera stays inside the closed shell (no void / “outside”). */
-const EDIT_CAM_WALL_MARGIN = 0.32
-
-const Z_CORRIDOR_BLEND = ROOM.half + 0.28
+/**
+ * Large axis-aligned workspace for orbit pan (Coohom-style BIM grid): right-drag slides the model
+ * on screen instead of hitting tight interior limits immediately.
+ */
+export const BIM_ORBIT_WORKSPACE = {
+  xHalf: 52,
+  zNorth: -52,
+  zSouth: 56,
+  yMin: 0.06,
+  yMax: 56,
+} as const
 
 /**
- * Keeps the orbit camera inside the living room + south corridor volume. Mutates `pos` (world space).
- * Corridor uses a tighter X bound than the main room so you never slide beside the hall mesh.
+ * Keeps the orbit camera inside {@link BIM_ORBIT_WORKSPACE}. Mutates `pos` (world space).
  */
 export function clampEditCameraPosition(pos: THREE.Vector3): void {
-  const m = EDIT_CAM_WALL_MARGIN
-  const xRoom = ROOM.half - m
-  const xCorridor = Math.min(xRoom, CORRIDOR.halfW - m)
-  const zNorth = -ROOM.half + m
-  const zSouthMax = ROOM.half + CORRIDOR.southLen - m
-
-  pos.y = THREE.MathUtils.clamp(pos.y, 0.08, ROOM.height - 0.02)
-  pos.z = THREE.MathUtils.clamp(pos.z, zNorth, zSouthMax)
-  if (pos.z < Z_CORRIDOR_BLEND) {
-    pos.x = THREE.MathUtils.clamp(pos.x, -xRoom, xRoom)
-  } else {
-    pos.x = THREE.MathUtils.clamp(pos.x, -xCorridor, xCorridor)
-  }
+  const { xHalf, zNorth, zSouth, yMin, yMax } = BIM_ORBIT_WORKSPACE
+  pos.x = THREE.MathUtils.clamp(pos.x, -xHalf, xHalf)
+  pos.y = THREE.MathUtils.clamp(pos.y, yMin, yMax)
+  pos.z = THREE.MathUtils.clamp(pos.z, zNorth, zSouth)
 }
 
-/** Keeps the orbit pivot inside the same shell as {@link clampEditCameraPosition}. */
+/** Keeps the orbit pivot inside {@link BIM_ORBIT_WORKSPACE}. */
 export function clampEditOrbitTarget(target: THREE.Vector3): void {
-  const m = EDIT_CAM_WALL_MARGIN
-  const xRoom = ROOM.half - m
-  const xCorridor = Math.min(xRoom, CORRIDOR.halfW - m)
-  const zNorth = -ROOM.half + m
-  const zSouthMax = ROOM.half + CORRIDOR.southLen - m
-
-  target.y = THREE.MathUtils.clamp(target.y, 0.28, ROOM.height - 0.08)
-  target.z = THREE.MathUtils.clamp(target.z, zNorth, zSouthMax)
-  if (target.z < Z_CORRIDOR_BLEND) {
-    target.x = THREE.MathUtils.clamp(target.x, -xRoom, xRoom)
-  } else {
-    target.x = THREE.MathUtils.clamp(target.x, -xCorridor, xCorridor)
-  }
+  const { xHalf, zNorth, zSouth, yMin, yMax } = BIM_ORBIT_WORKSPACE
+  target.x = THREE.MathUtils.clamp(target.x, -xHalf, xHalf)
+  target.y = THREE.MathUtils.clamp(target.y, Math.max(yMin, 0.22), yMax)
+  target.z = THREE.MathUtils.clamp(target.z, zNorth, zSouth)
 }
