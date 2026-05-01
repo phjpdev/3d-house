@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Navbar } from '@/components/site/Navbar'
+import { warmStudioNavigation } from '@/lib/warmStudioNavigation'
 import { useVividHomeStore, type AppTab } from '@/store/vividHomeStore'
 
 function pathnameToTab(p: string): AppTab {
@@ -21,11 +22,7 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
   }, [pathname, setTab])
 
   useEffect(() => {
-    router.prefetch('/build-3d')
-    router.prefetch('/edit-home')
-    router.prefetch('/visit-home')
-    // Warm the R3F scene chunk while user is on Build (or after first scene visit) so Edit opens faster.
-    void import('@/components/canvas/VividHomeExperience')
+    warmStudioNavigation(router)
   }, [router])
 
   return (

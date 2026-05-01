@@ -2,8 +2,10 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { TAB_ROUTE } from '@/lib/siteRoutes'
+import { warmStudioNavigation } from '@/lib/warmStudioNavigation'
 
 const navLinks = [
   { href: TAB_ROUTE.build, label: 'Build 3D' },
@@ -12,6 +14,7 @@ const navLinks = [
 ] as const
 
 export function LandingPage() {
+  const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -20,6 +23,17 @@ export function LandingPage() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  useEffect(() => {
+    const run = () => warmStudioNavigation(router)
+    const ric = window.requestIdleCallback
+    if (typeof ric === 'function') {
+      const id = ric(run, { timeout: 2800 })
+      return () => window.cancelIdleCallback(id)
+    }
+    const t = window.setTimeout(run, 900)
+    return () => clearTimeout(t)
+  }, [router])
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#0c0a09] text-stone-100">

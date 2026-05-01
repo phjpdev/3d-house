@@ -98,6 +98,90 @@ function alignCloneToCeilingUnder(root: THREE.Object3D, gap = 0.02) {
   }
 }
 
+/** Cool light grey upholstery (~screenshot 1), not pure white — reads softer under daylight + HDR. */
+const FABRIC_STONE_GREY = new THREE.Color('#cfd2d8')
+const METAL_LEG_SILVER = new THREE.Color('#c4c9d1')
+
+function gltfObjectLabel(o: THREE.Object3D): string {
+  const parts: string[] = []
+  let x: THREE.Object3D | null = o
+  while (x) {
+    if (x.name) parts.push(x.name)
+    x = x.parent
+  }
+  return parts.join(' ').toLowerCase()
+}
+
+/** Heuristic: thin metal legs vs fabric shells (this project's couch exports use `Circle` for legs). */
+function meshLooksLikeMetalTrim(mesh: THREE.Mesh): boolean {
+  return /\bcircle\b|\bmetal\b|\bleg\b|\bframe\b|\bchrome\b|\bsteel\b|\bfoot\b/i.test(
+    gltfObjectLabel(mesh),
+  )
+}
+
+function materialLuminance(c: THREE.Color): number {
+  return c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+}
+
+/**
+ * glTF `KHR_materials_unlit` loads as MeshBasicMaterial (flat, ignores lights). With default
+ * white baseColor and no textures — common for CAD-style exports — the mesh reads as a blown-out
+ * white slab next to lit PBR geometry. Swap to standard material so sun/HDR/shadows apply.
+ *
+ * Near-white untextured parts get a cool grey fabric tint so they match reference interiors;
+ * named metal/leg nodes stay brighter with higher metalness.
+ */
+function replaceUnlitMaterialsWithPBR(root: THREE.Object3D) {
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh
+    if (!mesh.isMesh) return
+
+    const upgrade = (m: THREE.Material): THREE.Material => {
+      if (!(m instanceof THREE.MeshBasicMaterial)) return m
+      const lum = materialLuminance(m.color)
+      const nearNeutral = lum > 0.82 && !m.map
+      const metalTrim = meshLooksLikeMetalTrim(mesh) && nearNeutral
+
+      const color = metalTrim
+        ? METAL_LEG_SILVER.clone()
+        : nearNeutral
+          ? FABRIC_STONE_GREY.clone()
+          : m.color.clone()
+      const roughness = metalTrim ? 0.36 : nearNeutral ? 0.93 : 0.88
+      const metalness = metalTrim ? 0.78 : nearNeutral ? 0.02 : 0.04
+      const envMapIntensity = metalTrim ? 0.72 : nearNeutral ? 0.32 : 0.48
+
+      const std = new THREE.MeshStandardMaterial({
+        name: m.name,
+        map: m.map,
+        aoMap: m.aoMap,
+        lightMap: m.lightMap,
+        lightMapIntensity: m.lightMapIntensity,
+        color,
+        roughness,
+        metalness,
+        envMapIntensity,
+        transparent: m.transparent,
+        opacity: m.opacity,
+        alphaMap: m.alphaMap,
+        alphaTest: m.alphaTest,
+        side: m.side,
+        depthWrite: m.depthWrite,
+        depthTest: m.depthTest,
+      })
+      if (m.vertexColors) std.vertexColors = true
+      m.dispose()
+      return std
+    }
+
+    if (Array.isArray(mesh.material)) {
+      mesh.material = mesh.material.map(upgrade)
+    } else {
+      mesh.material = upgrade(mesh.material)
+    }
+  })
+}
+
 function FurnitureMeshBody({
   item,
   gltfUrl,
@@ -112,6 +196,7 @@ function FurnitureMeshBody({
 
   const clone = useMemo(() => {
     const g = scene.clone(true)
+    replaceUnlitMaterialsWithPBR(g)
     g.traverse((obj) => {
       const mesh = obj as THREE.Mesh
       if (mesh.isMesh) {
