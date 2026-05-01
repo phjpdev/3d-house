@@ -80,8 +80,8 @@ const INTERIOR_ORBIT_SPEED = {
   zoomSpeed: 1.25,
 } as const
 
-/** Matches Coohom-style overlay ring / drei TransformControls sizing */
-const EDIT_GIZMO_SIZE = 1.06
+/** Matches Coohom-style overlay ring / drei TransformControls sizing; slightly >1 so axis strokes read on 1px WebGL lines. */
+const EDIT_GIZMO_SIZE = 1.14
 
 type Props = {
   mode: 'edit' | 'visit'
