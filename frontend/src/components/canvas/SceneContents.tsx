@@ -21,6 +21,10 @@ import { placedToFurniture } from '@/lib/toFurnitureConfig'
 import { mergeWallPictures } from '@/lib/mergeExhibits'
 import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
 import { loadMeshyGlbViaProxy } from '@/lib/meshyGlbProxyCache'
+import {
+  checkModelUrlReachable,
+  shouldSkipModelReachabilityCheck,
+} from '@/lib/modelUrlReachable'
 import { useVividHomeStore } from '@/store/vividHomeStore'
 import { useFrame, useThree } from '@react-three/fiber'
 import {
@@ -375,8 +379,12 @@ export function SceneContents({ mode }: Props) {
     for (const u of new Set(placed.map((p) => p.url))) {
       if (isMeshySignedAssetUrl(u)) {
         void loadMeshyGlbViaProxy(u).catch(() => {})
-      } else {
+      } else if (shouldSkipModelReachabilityCheck(u)) {
         useGLTF.preload(u)
+      } else {
+        void checkModelUrlReachable(u).then((ok) => {
+          if (ok) useGLTF.preload(u)
+        })
       }
     }
   }, [placed])

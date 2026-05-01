@@ -1,8 +1,11 @@
-import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import type { FurnitureConfig } from '@/types/house'
 import { useMeshyGlbBlobUrl } from '@/hooks/useMeshyGlbBlobUrl'
+import { useModelUrlReachable } from '@/hooks/useModelUrlReachable'
+import { applyDeskRoundedCorners, stylizeBareDeskMaterials } from '@/lib/gltfDeskMaterialStyle'
+import { normalizeExtremeModelScale } from '@/lib/normalizeExtremeGltfScale'
 import { ROOM } from '@/lib/houseLayout'
 
 /** World Y of ceiling slab underside (meters). */
@@ -197,6 +200,9 @@ function FurnitureMeshBody({
   const clone = useMemo(() => {
     const g = scene.clone(true)
     replaceUnlitMaterialsWithPBR(g)
+    stylizeBareDeskMaterials(g)
+    normalizeExtremeModelScale(g)
+    applyDeskRoundedCorners(g)
     g.traverse((obj) => {
       const mesh = obj as THREE.Mesh
       if (mesh.isMesh) {
@@ -266,6 +272,28 @@ function FurnitureMeshBody({
   )
 }
 
+const missingModelWarned = new Set<string>()
+
+function FurnitureMeshLoadGate({
+  item,
+  loadUrl,
+}: {
+  item: FurnitureConfig
+  loadUrl: string
+}) {
+  const reachable = useModelUrlReachable(loadUrl)
+
+  useEffect(() => {
+    if (reachable !== 'missing') return
+    if (missingModelWarned.has(loadUrl)) return
+    missingModelWarned.add(loadUrl)
+    console.warn(`[VividHome] Model missing or unreachable — skipped: ${loadUrl}`)
+  }, [reachable, loadUrl])
+
+  if (reachable !== 'reachable') return null
+  return <FurnitureMeshBody key={loadUrl} item={item} gltfUrl={loadUrl} />
+}
+
 export const FurnitureMesh = forwardRef<THREE.Group, Props>(function FurnitureMesh(
   { item },
   ref,
@@ -279,7 +307,7 @@ export const FurnitureMesh = forwardRef<THREE.Group, Props>(function FurnitureMe
 
   return (
     <group ref={ref} position={[item.position[0], worldY, item.position[2]]} rotation={[rx, ry, rz]}>
-      {loadUrl ? <FurnitureMeshBody key={loadUrl} item={item} gltfUrl={loadUrl} /> : null}
+      {loadUrl ? <FurnitureMeshLoadGate item={item} loadUrl={loadUrl} /> : null}
     </group>
   )
 })

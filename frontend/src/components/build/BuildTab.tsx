@@ -20,6 +20,8 @@ import {
   meshyStartTextRefine,
 } from '@/app/actions/meshy'
 import type { MeshyImageTask, MeshyTextTask } from '@vividhome/backend'
+import { applyDeskRoundedCorners, stylizeBareDeskMaterials } from '@/lib/gltfDeskMaterialStyle'
+import { normalizeExtremeModelScale } from '@/lib/normalizeExtremeGltfScale'
 import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
 import { fileToPersistableThumbnail, toPersistableThumbnailUrl } from '@/lib/persistableThumbnail'
 import { useVividHomeStore } from '@/store/vividHomeStore'
@@ -114,7 +116,13 @@ class GlbErrorBoundary extends Component<
 
 function PreviewModel({ url }: { url: string }) {
   const { scene } = useGLTF(url)
-  const cloned = useMemo(() => scene.clone(), [scene])
+  const cloned = useMemo(() => {
+    const g = scene.clone(true)
+    stylizeBareDeskMaterials(g)
+    normalizeExtremeModelScale(g)
+    applyDeskRoundedCorners(g)
+    return g
+  }, [scene])
   return (
     <primitive object={cloned} rotation={[0, -0.6, 0]} scale={0.42} position={[0, -0.35, 0]} />
   )
