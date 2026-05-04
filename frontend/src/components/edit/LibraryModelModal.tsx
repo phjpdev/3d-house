@@ -83,7 +83,7 @@ export function LibraryModelModal({ model, onClose, onPlaceInRoom, onRemoveFromL
             <Canvas
               className="h-[min(58vh,560px)] w-full min-h-[360px] touch-none sm:h-[500px] sm:min-h-[500px]"
               shadows
-              dpr={[1, 2]}
+              dpr={[1, 1]}
               camera={{ position: [2.2, 1.45, 2.6], fov: 42, near: 0.04, far: 80 }}
               gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
               onCreated={({ gl }) => configureRenderer(gl)}

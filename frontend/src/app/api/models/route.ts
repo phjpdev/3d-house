@@ -2,24 +2,11 @@ import { mkdir, readdir, unlink, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
+import { safeModelBasename } from '@/lib/safeModelBasename'
+import { MAX_LIBRARY_MODEL_BYTES } from '@/lib/uploadLimits'
 
 /** All uploaded / saved GLBs live next to shipped assets under `public/models`. */
 const MODELS_DIR = join(process.cwd(), 'public', 'models')
-const MAX_MODEL_BYTES = 52 * 1024 * 1024
-
-function safeModelBasename(name: string): string | null {
-  let base = name.replace(/\\/g, '/').split('/').pop() ?? ''
-  try {
-    base = decodeURIComponent(base.trim())
-  } catch {
-    return null
-  }
-  if (!base || base.includes('..') || !/\.(glb|gltf)$/i.test(base)) return null
-  // Allow spaces (e.g. `gaming chair.glb`); block traversal, separators, control chars, and
-  // characters that are invalid or awkward on Windows/macOS/Linux filenames.
-  if (/[/\\:\x00-\x1f<>:"|?*]/.test(base)) return null
-  return base
-}
 
 function displayName(filename: string): string {
   const base = filename.replace(/\.(glb|gltf)$/i, '').trim()
@@ -92,7 +79,7 @@ export async function POST(req: NextRequest) {
   }
 
   const buf = Buffer.from(await file.arrayBuffer())
-  if (buf.byteLength === 0 || buf.byteLength > MAX_MODEL_BYTES) {
+  if (buf.byteLength === 0 || buf.byteLength > MAX_LIBRARY_MODEL_BYTES) {
     return NextResponse.json({ error: 'File is empty or too large' }, { status: 413 })
   }
 

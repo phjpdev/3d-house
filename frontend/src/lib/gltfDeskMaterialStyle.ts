@@ -22,7 +22,7 @@ function isUntexturedPbr(m: THREE.Material): boolean {
 
 function deskStyleHint(m: THREE.Material, mesh: THREE.Mesh): boolean {
   const blob = `${m.name || ''} ${gltfObjectLabel(mesh)}`.toLowerCase()
-  return /\bdesk\b|\boffice\s*desk\b|workspace|countertop|laminate/i.test(blob)
+  return /desk|office\s*desk|workspace|countertop|laminate|table[_\s-]*top|tabletop/i.test(blob)
 }
 
 export function deskEnhancementEligible(m: THREE.Material, mesh: THREE.Mesh): boolean {

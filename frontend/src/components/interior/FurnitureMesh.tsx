@@ -1,10 +1,15 @@
-import { forwardRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useGLTF } from '@react-three/drei'
+import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useGLTF, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 import type { FurnitureConfig } from '@/types/house'
 import { useMeshyGlbBlobUrl } from '@/hooks/useMeshyGlbBlobUrl'
 import { useModelUrlReachable } from '@/hooks/useModelUrlReachable'
 import { applyDeskRoundedCorners, stylizeBareDeskMaterials } from '@/lib/gltfDeskMaterialStyle'
+import {
+  enhanceBareFurnitureMaterials,
+  type WoodTextureBundle,
+} from '@/lib/gltfFurnitureMaterialEnhance'
+import { interiorTexturePaths } from '@/components/interior/interiorTextureUrls'
 import { normalizeExtremeModelScale } from '@/lib/normalizeExtremeGltfScale'
 import { ROOM } from '@/lib/houseLayout'
 
@@ -126,6 +131,21 @@ function materialLuminance(c: THREE.Color): number {
   return c.r * 0.299 + c.g * 0.587 + c.b * 0.114
 }
 
+/** Avoid redundant state updates for ceiling point-light positions (same values, new array). */
+function emitterLocalsEqual(
+  a: Array<[number, number, number]> | null,
+  b: Array<[number, number, number]> | null,
+): boolean {
+  if (a === b) return true
+  if (!a || !b || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    const [ax, ay, az] = a[i]!
+    const [bx, by, bz] = b[i]!
+    if (Math.abs(ax - bx) > 1e-6 || Math.abs(ay - by) > 1e-6 || Math.abs(az - bz) > 1e-6) return false
+  }
+  return true
+}
+
 /**
  * glTF `KHR_materials_unlit` loads as MeshBasicMaterial (flat, ignores lights). With default
  * white baseColor and no textures — common for CAD-style exports — the mesh reads as a blown-out
@@ -197,9 +217,23 @@ function FurnitureMeshBody({
   const scaledRef = useRef<THREE.Group>(null)
   const [emitterLocals, setEmitterLocals] = useState<Array<[number, number, number]> | null>(null)
 
+  const woodTex = useTexture({
+    map: interiorTexturePaths.floorDiffuse,
+    roughnessMap: interiorTexturePaths.floorRoughness,
+    bumpMap: interiorTexturePaths.floorBump,
+  }) as WoodTextureBundle
+
+  /**
+   * `useTexture` must not be a `useMemo` dependency by reference — in some R3F / drei versions the
+   * returned object identity changes every render, which recreates `clone`, retriggers
+   * `useLayoutEffect` → `setEmitterLocals` → infinite "Maximum update depth" on ceiling lights.
+   */
+  const woodTexKey = `${woodTex.map.uuid}|${woodTex.roughnessMap.uuid}|${woodTex.bumpMap.uuid}`
+
   const clone = useMemo(() => {
     const g = scene.clone(true)
     replaceUnlitMaterialsWithPBR(g)
+    enhanceBareFurnitureMaterials(g, gltfUrl, woodTex)
     stylizeBareDeskMaterials(g)
     normalizeExtremeModelScale(g)
     applyDeskRoundedCorners(g)
@@ -220,7 +254,8 @@ function FurnitureMeshBody({
       alignCloneToFloorAndCenterXZ(g)
     }
     return g
-  }, [scene, mount])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `woodTex` reference churns; `woodTexKey` pins stable textures.
+  }, [scene, mount, gltfUrl, woodTexKey])
 
   const s = item.scale ?? 1
   const totalIntensity = item.lightIntensity ?? (mount === 'ceiling' ? 27 : 0)
@@ -235,7 +270,8 @@ function FurnitureMeshBody({
 
     const bulb = findBulbMesh(clone)
     if (!bulb) {
-      setEmitterLocals([[0, -0.35 * s, 0]])
+      const fallback: Array<[number, number, number]> = [[0, -0.35 * s, 0]]
+      setEmitterLocals((prev) => (emitterLocalsEqual(prev, fallback) ? prev : fallback))
       return
     }
 
@@ -243,11 +279,13 @@ function FurnitureMeshBody({
     const worldPts = bulbEmitterWorldPositions(bulb, 3)
     scaled.updateMatrixWorld(true)
     const inv = new THREE.Matrix4().copy(scaled.matrixWorld).invert()
-    const locals = worldPts.map((w) => {
+    const locals: Array<[number, number, number]> = worldPts.map((w) => {
       const v = w.clone().applyMatrix4(inv)
       return [v.x, v.y, v.z] as [number, number, number]
     })
-    setEmitterLocals(locals.length ? locals : [[0, -0.35 * s, 0]])
+    const next: Array<[number, number, number]> =
+      locals.length > 0 ? locals : [[0, -0.35 * s, 0]]
+    setEmitterLocals((prev) => (emitterLocalsEqual(prev, next) ? prev : next))
   }, [clone, mount, s, totalIntensity])
 
   const perBulb =
@@ -272,8 +310,6 @@ function FurnitureMeshBody({
   )
 }
 
-const missingModelWarned = new Set<string>()
-
 function FurnitureMeshLoadGate({
   item,
   loadUrl,
@@ -282,13 +318,6 @@ function FurnitureMeshLoadGate({
   loadUrl: string
 }) {
   const reachable = useModelUrlReachable(loadUrl)
-
-  useEffect(() => {
-    if (reachable !== 'missing') return
-    if (missingModelWarned.has(loadUrl)) return
-    missingModelWarned.add(loadUrl)
-    console.warn(`[VividHome] Model missing or unreachable — skipped: ${loadUrl}`)
-  }, [reachable, loadUrl])
 
   if (reachable !== 'reachable') return null
   return <FurnitureMeshBody key={loadUrl} item={item} gltfUrl={loadUrl} />

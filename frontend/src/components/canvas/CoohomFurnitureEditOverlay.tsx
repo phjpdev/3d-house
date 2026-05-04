@@ -359,7 +359,7 @@ export function useApplyCoohomTransformTheme(
 ) {
   useLayoutEffect(() => {
     if (!active) return
-    let id = requestAnimationFrame(() => {
+    const id = requestAnimationFrame(() => {
       const tc = tcRef.current
       if (tc) applyCoohomTransformTheme(tc)
     })

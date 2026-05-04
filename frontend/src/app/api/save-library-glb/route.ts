@@ -3,10 +3,9 @@ import { join } from 'path'
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
+import { MAX_LIBRARY_MODEL_BYTES } from '@/lib/uploadLimits'
 
 const MAX_SOURCE_URL_LENGTH = 16_384
-/** Guardrail — Meshy outputs are typically well under this */
-const MAX_GLB_BYTES = 52 * 1024 * 1024
 
 function slugFromHint(nameHint: string | undefined): string {
   const raw = (nameHint ?? 'model').trim().toLowerCase()
@@ -70,7 +69,7 @@ export async function POST(req: NextRequest) {
   }
 
   const buf = Buffer.from(await upstream.arrayBuffer())
-  if (buf.byteLength > MAX_GLB_BYTES) {
+  if (buf.byteLength > MAX_LIBRARY_MODEL_BYTES) {
     return NextResponse.json({ error: 'Model file is too large' }, { status: 413 })
   }
 

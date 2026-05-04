@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { Canvas } from '@react-three/fiber'
-import { Environment, Html, OrbitControls, useGLTF } from '@react-three/drei'
+import { Environment, Html, OrbitControls, useGLTF, useTexture } from '@react-three/drei'
 import {
   Component,
   type ErrorInfo,
@@ -21,6 +21,11 @@ import {
 } from '@/app/actions/meshy'
 import type { MeshyImageTask, MeshyTextTask } from '@vividhome/backend'
 import { applyDeskRoundedCorners, stylizeBareDeskMaterials } from '@/lib/gltfDeskMaterialStyle'
+import {
+  enhanceBareFurnitureMaterials,
+  type WoodTextureBundle,
+} from '@/lib/gltfFurnitureMaterialEnhance'
+import { interiorTexturePaths } from '@/components/interior/interiorTextureUrls'
 import { normalizeExtremeModelScale } from '@/lib/normalizeExtremeGltfScale'
 import { isMeshySignedAssetUrl } from '@/lib/meshyAssets'
 import { fileToPersistableThumbnail, toPersistableThumbnailUrl } from '@/lib/persistableThumbnail'
@@ -116,13 +121,19 @@ class GlbErrorBoundary extends Component<
 
 function PreviewModel({ url }: { url: string }) {
   const { scene } = useGLTF(url)
+  const woodTex = useTexture({
+    map: interiorTexturePaths.floorDiffuse,
+    roughnessMap: interiorTexturePaths.floorRoughness,
+    bumpMap: interiorTexturePaths.floorBump,
+  }) as WoodTextureBundle
   const cloned = useMemo(() => {
     const g = scene.clone(true)
+    enhanceBareFurnitureMaterials(g, url, woodTex)
     stylizeBareDeskMaterials(g)
     normalizeExtremeModelScale(g)
     applyDeskRoundedCorners(g)
     return g
-  }, [scene])
+  }, [scene, url, woodTex])
   return (
     <primitive object={cloned} rotation={[0, -0.6, 0]} scale={0.42} position={[0, -0.35, 0]} />
   )
